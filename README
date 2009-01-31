@@ -1,0 +1,224 @@
+Ffalarms
+========
+
+Ffalarms is a program to set multiple alarms a day using a finger
+friendly user interface (hence the name).
+
+Three clicks to set an alarm time.  Progressive volume.  Switch off
+though four button puzzle.  LED night clock included.
+
+Ffalarms uses an analog-like clock face to select a time of the alarm
+so only one to three clicks are needed to pick a time: one to select
+an hour, optional one to select a minute (if not 0), and optional one
+to select AM/PM (if not AM).
+
+The alarm starts quietly and slowly increases the volume up to the
+maximum.  Thus you may be awaken by a gentle sound if your sleep is
+shallow (especially if you select a nice tune as an alarm), but you
+may require it to get lauder if you are in a deep sleep or hard
+working and ignoring distractions from environment.
+
+To confirm turning off the alarm you have to click four buttons with
+numbers in proper order under a 5 second timeout: pretty hard to do if
+you are still half-sleeping and and your sight is still unclear and
+blurred (at least much harder than pushing the snooze button :)).
+
+Ffalarms also contains a 7 segment LED-like night clock.
+
+
+Author
+------
+
+Łukasz Pankowski <lukpank@o2.pl>
+
+
+Inspirations
+------------
+
+The layout of the user interface is clearly inspired by that of Neon
+[1], a nice and finger friendly image viewer.  The confirmation puzzle
+idea is taken from Zhone [2], FSO [3] usable demo application.  The 7
+segment LED-like night clock is inspired by the LED clock [4], which I
+have discovered on opkg.org while having ffalarms useable on my Neo
+FreeRuner (though not yet in a releasable state).
+
+
+Dependencies
+------------
+
+Mostly Python [5] and EFL [6].  
+
+python-edje python-ecore python-re python-datetime atd
+alsa-utils-amixer alsa-utils-alsactl openmoko-alsa-scenarios
+ttf-liberation-sans
+
+
+Suggested media players
+-----------------------
+
+mplayer or alsa-utils-aplay (voc, wav, raw or au only)
+
+
+Features
+--------
+
+- It is developed and works on Om 2008.12 (not yet tested on any other
+  distribution).
+
+- Can be configured to use any media player, mplayer is of course
+  recommended, but it may work with aplay from alsa-utils-aplay, if
+  wav files are enough for you.  If you have qtopia-phone-x11 and
+  alsa-utils-aplay installed it should work out of the box.
+
+- Adding, listing, and removing alarms is possible from command line
+  (see Command line options below).
+
+- LED clock and confirmation puzzles are completely themeable, as
+  their implemented in Edje [7] using Embryo [8] for logic.
+
+- It currently depends only on atd for alarm scheduling, hope it makes
+  it more portable.
+
+
+Limitations
+-----------
+
+- Ffalarms knows nothing about:
+
+  - suspend: so if Neo resumes to play an alarm at a given time it may
+    suspend soon before the alarm catches your attention, so currently
+    it is up to you to set proper suspend options
+
+  - Silent profiles: it will play the alarm any way (but on a surplus
+    side you can set Silent profile for the night if you wish and it
+    will not prevent the alarm to wake you up).
+
+  - Phone calls: if an alarm is triggered in the middle of the phone
+    call it will switch to stereoout alsa state muting the phone call.
+
+- Time selection:
+ 
+  - There is currently no way to select a date of an alarm, it will
+    schedule it for to day if the given time have not yet passed or
+    for tomorrow otherwise.  This is reasonable default but an option
+    to select a date from a finger friendly calendar would be nice.
+
+  - There is currently no way to schedule periodic alarms, for example
+    every day, or only on Mondays.
+
+- Ffalarms is currently only configurable through a configuration file
+  (see Configuration below)
+
+- Currently the list of alarms is not refreshed if the alarms have
+  been altered by another instance of ffalarms or the alarm finished.
+
+- There is currently no way to configure the LED night clock.
+
+
+Configuration
+-------------
+
+On Om 2008.12 install alsa-utils-aplay and qtopia-phone-x11 together
+with ffalarms and it should work out of the box.  But if you want to
+use other alarm file or player than read on.
+
+The configuration is done through a file ~/.ffalarms.  The reasonable
+default configuration is written for you automatically when you add an
+alarm and the configuration file does not exist (then it is easy to
+customize if you have it). It mostly looks like:
+
+    [alarm]
+    player=aplay %(file)s
+    file=/opt/Qtopia/sounds/alarm.wav
+    repeat=300
+
+Which will play a given file 300 times (ie. for about 3 minutes).  But
+if you have mplayer installed you can use its -loop option to obtain
+the same effect (and then omit repeat as it obviously defaults to 1)
+
+    [alarm]
+    player=mplayer -really-quiet -loop 300 %(file)s
+    file=/opt/Qtopia/sounds/alarm.wav
+
+But why would you use a wav file if you have mplayer installed?
+
+Reference %(file)s in the player option will be expanded to a value of
+file option with leading ~ replaced with the home directory and proper
+shell quoting if needed.
+
+
+Command line options
+--------------------
+
+usage: ffalarms [OPTIONS]
+
+Options:
+  -e, --edje=FILE            use Edje interface from FILE
+      --at-spool=DIR         use DIR as the at spool directory instead of
+                             /var/spool/at
+  -c, --config=FILE          use config file other than ~/.ffalarms
+  -s, --set=HH:MM            set alarm at given time
+      --del=TIMESTAMP        delete alarm with a given timestamp
+      --kill                 kill running alarm
+  -l, --list                 list scheduled alarms
+  -h, --help                 display this help and exit
+      --version              display version and exit
+
+
+Credits
+-------
+
+The list widget is a (slightly modified) python-edje example kinetic
+list [9] by Kenneth Rohde Christiansen (svn 38572) this includes
+kinenic_list.py, listitem.png, and a portion of 03-kinenic_list.edc
+embedded into ffalarms.edc.
+
+Some images are generated from SVG icons from Tango Desktop Project [10]
+(licenced under the Creative Commons Attribution Share-Alike license),
+this includes add.png, remove.png, go-last.png, and led-clock.png
+(generated from stock_weather-night-clear.svg).
+
+Some images are generated from SVG icons available in Debian package
+gnome-icon-theme (licenced under GNU GPL v2) which says they are
+available from [11], this includes go-last.png, gtk-close.png, and
+ffalarms.svg (based on appointment-new.svg).
+
+
+Bugs
+----
+
+I once experienced keyboard popping up on top of LED clock without
+resizing it, thus covering the close button ("X"), if this ever
+happens press key q to close the LED clock.
+
+
+TODO
+----
+
+- Should restore original alsa state (from before the alarm) started
+  after stopping/finishing, currently just sets steroout alsa state.
+
+- Should preserve list selection on list update.
+
+- The list would get more readable if the items would be of the form
+  "Today 18:30", "Tomorrow 7:00" in huge letters.  Would require
+  responding to change of date at midnight.
+
+- May support "repeat=5m" for playing the alarm for five minutes
+  instead of given number of times.
+
+
+References
+----------
+
+[1] http://neon.projects.openmoko.org/, http://www.opkg.org/package_62.html
+[2] http://wiki.openmoko.org/wiki/Zhone
+[3] http://www.freesmartphone.org/index.php/Main_Page
+[4] http://projects.openmoko.org/projects/ledclock/, http://www.opkg.org/package_104.html
+[5] http://python.org/
+[6] http://enlightenment.org/p.php?p=about/efl&l=en
+[7] http://wiki.enlightenment.org/index.php/Edje
+[8] http://wiki.enlightenment.org/index.php/Embryo
+[9] http://trac.enlightenment.org/e/browser/trunk/BINDINGS/python/python-edje/examples/evas-demo/03-kinetic_list
+[10] http://tango.freedesktop.org/
+[11] http://ftp.acc.umu.se/pub/GNOME/sources/gnome-icon-theme/
