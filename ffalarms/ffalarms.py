@@ -25,6 +25,7 @@ Options:
   -s, --set=HH:MM            set alarm at given time
       --del=TIMESTAMP        delete alarm with a given timestamp
       --kill                 kill running alarm
+      --puzzle               run turn off puzzle
   -l, --list                 list scheduled alarms
   -h, --help                 display this help and exit
       --version              display version and exit
@@ -57,6 +58,7 @@ CONFIG_FILE='~/.ffalarmsrc'
 COMMANDS = ['alsactl', 'amixer']
 ALSASTATE='/usr/share/openmoko/scenarios/stereoout.state'
 PUZZLE_TIMEOUT=5
+PUZZLE_AUTO_TIMEOUT=10
 MSG_TIMEOUT=5
 BRIGHTNESS_FILE='/sys/class/backlight/pcf50633-bl/brightness'
 
@@ -67,17 +69,30 @@ ALARM_SCRIPT = r"""#!/bin/sh
 
 ALSASTATE=%(ALSASTATE)s
 AMIXER_PID=
+ORIG_ALSASTATE=`mktemp /tmp/$0.XXXXXX`
+
+COPY=
+for NAME in `ls x*.ffalarms.* | sed s/^x//`; do
+   ps -C "$NAME" > /dev/null && cp "/tmp/$NAME."* "$ORIG_ALSASTATE" \
+       && COPY=1 && break
+done
+[ -n "$COPY" ] || alsactl -f "$ORIG_ALSASTATE" store
 
 quit() {
         kill "$AMIXER_PID" $!
         wait
-        alsactl -f "$ALSASTATE" restore
-        rm -f "x$0"
+        alsactl -f "$ORIG_ALSASTATE" restore
+        rm -f "x$0" "$ORIG_ALSASTATE"
         exit
 }
 trap quit TERM
 
 mv "$0" "x$0"
+
+PIDS=`ps -C ffalarms --no-heading --format "pid"` && \
+    for PID in $PIDS; do kill -USR1 $PID && break; done || \
+    { DISPLAY=:0 ffalarms --puzzle & }
+
 alsactl -f "$ALSASTATE" restore
 amixer --quiet sset PCM,0 150
 for x in `seq 150 255`; do echo sset PCM,0 $x || break; sleep 1; done \
@@ -110,6 +125,9 @@ repeat=300
 #player=mplayer -really-quiet -loop 300 %(file)s
 #repeat=1
 """
+
+
+ECORE_EVENT_SIGNAL_USER = 1
 
 
 class ConfigError(Exception):
@@ -212,13 +230,42 @@ def shquote(s):
         return '"%s"' % re.sub(r'([$`\\"])', r'\\\1', s)
 
 
+class EdjeStack(object):
+
+    def __init__(self, ee, remove_on_empty=False):
+        self.ee = ee
+        self.remove_on_empty = remove_on_empty
+        self.canvas = ee.evas
+        self._stack = []
+        ee.callback_resize = self.resize
+
+    def __iter__(self):
+        return iter(self._stack)
+
+    def resize(self, ee):
+        for edj in self._stack:
+            edj.size = self.canvas.rect.size
+
+    def push(self, edj):
+        edj.size = self.canvas.rect.size
+        edj.show()
+        self._stack.append(edj)
+
+    def pop(self, edj):
+        edj.hide()
+        if edj in self._stack:
+            self._stack.remove(edj)
+        if not self._stack and self.remove_on_empty:
+            self.ee = None
+
+
 class ClockFace(edje.Edje):
 
     names = ["hour-button", "minute-button"]
 
-    def __init__(self, main, filename, callback):
-        edje.Edje.__init__(self, main.canvas, file=filename, group='clock-group')
-        self.main = main
+    def __init__(self, stack, filename, callback):
+        edje.Edje.__init__(self, stack.canvas, file=filename, group='clock-group')
+        self.stack = stack
         self.signal_emit("select", "hour-button")
         self.signal_callback_add("mouse,clicked,1", "hour-*-button",
                                  self.set_hour_or_minute)
@@ -234,12 +281,12 @@ class ClockFace(edje.Edje):
         self.hour=None
         self.minute=0
         self.am_pm=0
-        self.main.push_edje(self)
+        self.stack.push(self)
 
     def dismiss(self, edj, signal, source):
         if self.hour is None and source == 'ok-button':
             return
-        self.main.pop_edje(self)
+        self.stack.pop(self)
         if source != 'cancel-button' and self.hour is not None:
             self.callback(self.hour + 12 * self.am_pm, self.minute)
 
@@ -280,9 +327,9 @@ class ClockFace(edje.Edje):
 
 class Puzzle(edje.Edje):
 
-    def __init__(self, main, filename, callback, *args):
-        edje.Edje.__init__(self, main.canvas, file=filename, group='puzzle-group')
-        self.main = main
+    def __init__(self, stack, filename, callback, *args):
+        edje.Edje.__init__(self, stack.canvas, file=filename, group='puzzle-group')
+        self.stack = stack
         self.callback = callback
         self.args = args
         self.started = False
@@ -294,7 +341,7 @@ class Puzzle(edje.Edje):
         self.signal_emit("start", "");
         self.started = True
         self.timer = ecore.timer_add(timeout, self.dismiss)
-        self.main.push_edje(self)
+        self.stack.push(self)
 
     def solved(self, *a):
         if self.started:
@@ -304,15 +351,15 @@ class Puzzle(edje.Edje):
     def dismiss(self, *a):
         self.started = False
         self.timer.stop()
-        self.main.pop_edje(self)
+        self.stack.pop(self)
 
 
 class LandscapeClock(edje.Edje):
 
-    def __init__(self, main):
-        edje.Edje.__init__(self, main.canvas, file=main.filename,
+    def __init__(self, stack, filename):
+        edje.Edje.__init__(self, stack.canvas, file=filename,
                            group='landscape-clock-group')
-        self.main = main
+        self.stack = stack
         self.hour = self.minute = self.brightness = None
         self.signal_callback_add("mouse,clicked,1", "cancel-button", self.stop)
         self.on_key_down_add(self.key_down_cb)
@@ -325,15 +372,15 @@ class LandscapeClock(edje.Edje):
         else:
             self._set_brightness(21)
         self.signal_emit("start", "");
-        self.main.push_edje(self)
-        self.main.ee.fullscreen = True
+        self.stack.push(self)
+        self.stack.ee.fullscreen = True
         self.focus = True
 
     def stop(self, edc, signal, source):
         self.focus = False
         self.signal_emit("stop", "");
-        self.main.ee.fullscreen = False
-        self.main.pop_edje(self)
+        self.stack.ee.fullscreen = False
+        self.stack.pop(self)
         if self.brightness is not None:
             self._set_brightness(self.brightness)
 
@@ -380,52 +427,48 @@ class AlarmSet(object):
 
 class AlarmList(edje.Edje):
 
-    def __init__(self, ee, filename):
-        edje.Edje.__init__(self, ee.evas, file=filename, group='main-group')
-        self.ee = ee
-        self.canvas = ee.evas
+    def __init__(self, stack, filename):
+        edje.Edje.__init__(self, stack.canvas, file=filename, group='main-group')
+        self.stack = stack
         self.filename = filename
         self.signal_callback_add("mouse,clicked,1", "new-alarm-button", self.new_alarm)
         self.signal_callback_add("mouse,clicked,1", "delete-alarm-button",
                                  self.delete_alarm_after_puzzle)
         self.signal_callback_add("mouse,clicked,1", "show-clock-button",
                                  self.show_clock)
-        self.edj_stack = [self]
-        self.list = KineticList(self.canvas, file=filename, item_height=85,
+        self.signal_callback_add("SIGUSR1", "", self.turn_off_puzzle)
+        self.list = KineticList(self.stack.canvas, file=filename, item_height=85,
                                 with_thumbnails=False)
         self.signal_callback_add("open", "*", self.new_alarm)
         self.update_list()
         self.part_swallow('list', self.list)
         self.msg_timer = None
-        self.msg = edje.Edje(self.canvas, file=filename, group='message-group')
+        self.msg = edje.Edje(self.stack.canvas, file=filename, group='message-group')
         self.msg.signal_callback_add("mouse,clicked,1", "cancel-button", self.message_hide)
-        self.clock = LandscapeClock(self)
+        self.clock = LandscapeClock(self.stack, filename)
+        self._dirty_add_sigusr1_handler()
 
-    def resize(self, ee, *a, **ka):
-        for edj in self.edj_stack:
-            edj.size = self.canvas.rect.size
+    def _dirty_add_sigusr1_handler(self):
+        class SigUsr1Event(ecore.Event):
+            def __init__(_self):
+                self.signal_emit("SIGUSR1", "")
+        ecore.c_ecore._event_mapping_register(ECORE_EVENT_SIGNAL_USER, SigUsr1Event)
+        self._dirty_update_sigusr1_handler()
 
-    def push_edje(self, edj):
-        edj.size = self.rect.size
-        edj.show()
-        self.edj_stack.append(edj)
-
-    def pop_edje(self, edj):
-        edj.hide()
-        if edj in self.edj_stack:
-            self.edj_stack.remove(edj)
+    def _dirty_update_sigusr1_handler(self):
+        ecore.EventHandler(ECORE_EVENT_SIGNAL_USER, lambda *a: True)
 
     def message(self, msg, timeout=MSG_TIMEOUT):
         if self.msg_timer is not None:
             self.msg_timer.stop()
         self.msg.part_text_set("message", msg)
-        self.push_edje(self.msg)
+        self.stack.push(self.msg)
         self.msg.raise_()
         if timeout is not None:
             self.msg_timer = ecore.timer_add(timeout, self.message_hide)
 
     def message_hide(self, *ignore):
-        self.pop_edje(self.msg)
+        self.stack.pop(self.msg)
         if self.msg_timer is not None:
             self.msg_timer.stop()
 
@@ -443,9 +486,17 @@ class AlarmList(edje.Edje):
         k.resize(k.w, h - 1)
         k.resize(k.w, h + 1)
 
+    def turn_off_puzzle(self, *a):
+        self._dirty_update_sigusr1_handler()
+        if not self.clock in self.stack:
+            puzzle = Puzzle(self.stack, self.filename, self.delete_alarm, [])
+            puzzle.start("Confirm turning off the running alarm",
+                         timeout=PUZZLE_AUTO_TIMEOUT)
+        self.stack.ee.raise_()
+
     def delete_alarm_after_puzzle(self, edj, signal, source):
-        puzzle = Puzzle(self, self.filename, self.delete_alarm,
-                       list(self.list.selection))
+        puzzle = Puzzle(self.stack, self.filename, self.delete_alarm,
+                        list(self.list.selection))
         n = len(self.list.selection)
         if n == 1:
             label = "Confirm removing of the selected alarm"
@@ -466,7 +517,7 @@ class AlarmList(edje.Edje):
         self.update_list()
 
     def new_alarm(self, edj, signal, source):
-        clock = ClockFace(self, self.filename, self.add_alarm)
+        clock = ClockFace(self.stack, self.filename, self.add_alarm)
         clock.start()
 
     def add_alarm(self, hour, minute):
@@ -490,11 +541,11 @@ def main():
         opts, args = getopt.getopt(
             sys.argv[1:], 'e:c:s:lh', ['edje=', 'at-spool=', 'config=',
                                        'list', 'set=', 'del=', 'kill',
-                                       'version', 'help'])
+                                       'puzzle', 'version', 'help'])
     except getopt.GetoptError, e:
         sys.exit('%s: %s' % (prog, e))
     actions = []
-    show_list = False
+    show_list = puzzle = False
     for o, a in opts:
         if o in ['-e', '--edje']:
             EDJE_FILE = a
@@ -506,6 +557,8 @@ def main():
             show_list = True
         elif o in ['-s', '--set', '--del', '--kill']:
             actions.append((o, a))
+        elif o == '--puzzle':
+            puzzle = True
         elif o in ['-h', '--help']:
             print __doc__ % dict(prog=prog)
             sys.exit()
@@ -560,11 +613,12 @@ def main():
     ee.name_class = ('FFAlarms', 'FFAlarms')
     ee.title = 'Alarms'
 
-    edj = AlarmList(ee, EDJE_FILE)
-    edj.resize(ee.evas)
-    edj.show()
+    stack = EdjeStack(ee)
+    edj = AlarmList(stack, EDJE_FILE)
+    stack.push(edj)
+    if puzzle:
+        edj.turn_off_puzzle()
 
-    ee.callback_resize = edj.resize
     ee.callback_delete_request = lambda *a: ecore.main_loop_quit()
     ee.show()
 
