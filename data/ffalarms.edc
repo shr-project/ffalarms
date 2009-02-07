@@ -358,19 +358,19 @@ styles {
 /* 4   2 */
 /*  333  */
 
-#define DIGIT(NAME, REL1Y, REL2Y)                                       \
+#define DIGIT(NAME, REL1Y, REL2Y, TO)                                   \
     part {                                                              \
         name: NAME;                                                     \
         type: RECT;                                                     \
                                                                         \
         description {                                                   \
             visible: 0;                                                 \
-            rel1 { relative, 0.25 REL1Y; offset, 10 10; }               \
-            rel2 { relative, 0.75 REL2Y; offset, -10 -10; }             \
+            rel1 { relative: 0.0 REL1Y; to: TO; }                       \
+            rel2 { relative: 1.0 REL2Y; to: TO; }                       \
         }                                                               \
     }                                                                   \
     SEGMENT(NAME, "0", 0.9 0, 1 1);                                     \
-    SEGMENT(NAME, "6", 0.45 0, 0.55 1);                                 \
+    SEGMENT(NAME, "6", 0.45 0.19, 0.55 0.81);                           \
     SEGMENT(NAME, "3", 0 0, 0.1 1);                                     \
     SEGMENT(NAME, "1", 0.45 0.8, 1 1);                                  \
     SEGMENT(NAME, "2", 0 0.8, 0.55 1);                                  \
@@ -673,22 +673,39 @@ collections {
         }
     }
 
+    #define DIGIT_W 0.19
     group {
         name: "landscape-clock-group";
         parts{
             COLOR_BACKGROUND("background", 0 0 0 255);
-            DIGIT("h10", 0.05, 0.25);
-            DIGIT("h1", 0.25, 0.45);
-            DIGIT("m10", 0.55, 0.75);
-            DIGIT("m1", 0.75, 0.95);
+
+            part {
+                name: "display";
+                type: RECT;
+                description {
+                    visible: 0;
+                    rel1.relative: (0.5 - 0.9 * 1.33 * DIGIT_W) 0.05;
+                    rel2.relative: (0.5 + 0.9 * 1.33 * DIGIT_W) 0.95;
+                }
+                description {
+                    state: "12h" 0.0;
+                    visible: 0;
+                    rel1.relative: (0.5 - 1.06 * 1.33 * DIGIT_W) -0.11;
+                    rel2.relative: (0.5 + 1.06 * 1.33 * DIGIT_W) 0.95;
+                }
+            }
+            DIGIT("h10", 0.0, DIGIT_W, "display");
+            DIGIT("h1", 0.25, 0.25+DIGIT_W, "display");
+            DIGIT("m10", 0.75-DIGIT_W, 0.75, "display");
+            DIGIT("m1", 1.0-DIGIT_W, 1.0, "display");
 
             part {
                 name: "dot-1";
                 type: RECT;
                 description {
                     color: LED_COLOR;
-                    rel1.relative: 0.55 0.475;
-                    rel2.relative: 0.6 0.52;
+                    rel1 { relative: 0.6 (0.5-DIGIT_W/10); to: "display"; }
+                    rel2 { relative: 0.7 (0.5+DIGIT_W/10); to: "display"; }
                 }
             }
             part {
@@ -696,8 +713,8 @@ collections {
                 type: RECT;
                 description {
                     color: LED_COLOR;
-                    rel1.relative: 0.4 0.475;
-                    rel2.relative: 0.45 0.52;
+                    rel1 { relative: 0.3 (0.5-DIGIT_W/10); to: "display"; }
+                    rel2 { relative: 0.4 (0.5+DIGIT_W/10); to: "display"; }
                 }
             }
 
@@ -742,9 +759,10 @@ collections {
                     if (get_int(running))
                         timer(60.0 - second, "clock_cb", 1);
                     if (hour != get_int(prev_hour)) {
-                        set_digit(0, (hour < 10) ?
-                                  10 : (hour / 10));
+                        set_digit(0, (hour < 10) ? 10 : (hour / 10));
                         set_digit(1, hour % 10);
+                        set_state(PART:"display",
+                                  (hour < 20) ? "12h" : "default", 0.0);
                         set_int(prev_hour, hour);
                     }
                     set_digit(2, minute / 10);
