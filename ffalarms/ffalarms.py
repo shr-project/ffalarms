@@ -124,13 +124,16 @@ repeat=300
 ## (if not given defaults to 1)
 #player=mplayer -really-quiet -loop 300 %(file)s
 #repeat=1
+
+[ledclock]
+24hr_format=yes
 """
 
 
 ECORE_EVENT_SIGNAL_USER = 1
 
 
-class ConfigError(Exception):
+class ConfigError(ConfigParser.Error):
     pass
 
 
@@ -364,13 +367,14 @@ class LandscapeClock(edje.Edje):
         self.signal_callback_add("mouse,clicked,1", "cancel-button", self.stop)
         self.on_key_down_add(self.key_down_cb)
 
-    def start(self):
+    def start(self, h24=True):
         try:
             self.brightness = int(file(BRIGHTNESS_FILE).readline())
         except IOError:
             self.brightness = None
         else:
             self._set_brightness(21)
+        self.signal_emit(("12hr-format", "24hr-format")[bool(h24)], "")
         self.signal_emit("start", "");
         self.stack.push(self)
         self.stack.ee.fullscreen = True
@@ -394,35 +398,62 @@ class LandscapeClock(edje.Edje):
             self.stop(None, None, None)
 
 
-class AlarmSet(object):
+class Config(object):
+
+    def __init__(self):
+        self.cfg = self.mtime = None
 
     def _read_config(self):
+        fn = os.path.expanduser(CONFIG_FILE)
+        try:
+            mtime = os.stat(fn).st_mtime
+        except OSError:
+            if not os.path.exists(fn):
+                # default example which has some chance to work
+                f = file(fn, 'w')
+                f.write(DEFAULT_CONFIG)
+                f.close()
+                mtime = os.stat(fn).st_mtime
+        if mtime == self.mtime:
+            return
         cfg = ConfigParser.SafeConfigParser()
+        cfg.add_section('ledclock')
+        cfg.set('ledclock', '24hr_format', 'yes')
         cfg.add_section('alarm')
         cfg.set('alarm', 'repeat', '1')
-        fn = os.path.expanduser(CONFIG_FILE)
-        if not os.path.exists(fn):
-            # default example which has some chance to work
-            f = file(fn, 'w')
-            f.write(DEFAULT_CONFIG)
-            f.close()
         cfg.read([fn])
-        self.alarm_player = alarm_alarmfile = None
+        self.cfg = cfg
+        self.mtime = mtime
+
+    @property
+    def alarm_cmd(self):
+        self._read_config()
         try:
-            self.alarm_file = os.path.expanduser(cfg.get('alarm', 'file'))
-            self.alarm_cmd = cfg.get(
-                'alarm', 'player', vars={'file': shquote(self.alarm_file)})
-            self.alarm_repeat = cfg.getint('alarm', 'repeat')
-            if not os.path.exists(self.alarm_file):
+            alarm_file = os.path.expanduser(self.cfg.get('alarm', 'file'))
+            alarm_cmd = self.cfg.get(
+                'alarm', 'player', vars={'file': shquote(alarm_file)})
+            if not os.path.exists(alarm_file):
                 raise ConfigError('%s: given alarm file does not exist' %
-                                  self.alarm_file)
-                self.alarm_file = None
+                                  alarm_file)
         except ConfigParser.Error, e:
             raise ConfigError('%s: %s' % (CONFIG_FILE, e))
+        return alarm_cmd
 
-    def set_alarm(self, hour, minute):
+    @property
+    def alarm_repeat(self):
         self._read_config()
-        set_alarm(hour, minute, self.alarm_cmd, self.alarm_repeat)
+        try:
+            return self.cfg.getint('alarm', 'repeat')
+        except (ConfigParser.Error, ValueError), e:
+            raise ConfigError('%s: repeat: %s' % (CONFIG_FILE, e))
+
+    @property
+    def time_24hr_format(self):
+        self._read_config()
+        try:
+            return self.cfg.getboolean('ledclock', '24hr_format')
+        except ValueError, e:
+            raise ConfigError('%s: 24hr_format: %s' % (CONFIG_FILE, e))
 
 
 class AlarmList(edje.Edje):
@@ -431,6 +462,7 @@ class AlarmList(edje.Edje):
         edje.Edje.__init__(self, stack.canvas, file=filename, group='main-group')
         self.stack = stack
         self.filename = filename
+        self.cfg = Config()
         self.signal_callback_add("mouse,clicked,1", "new-alarm-button", self.new_alarm)
         self.signal_callback_add("mouse,clicked,1", "delete-alarm-button",
                                  self.delete_alarm_after_puzzle)
@@ -522,16 +554,18 @@ class AlarmList(edje.Edje):
 
     def add_alarm(self, hour, minute):
         try:
-            cfg = AlarmSet()
-            cfg.set_alarm(hour, minute)
-        except ConfigError, e:
+            set_alarm(hour, minute, self.cfg.alarm_cmd, self.cfg.alarm_repeat)
+        except ConfigParser.Error, e:
             self.message(str(e))
         else:
             self.update_list()
 
     def show_clock(self, edj, signal, source):
         self.clock.raise_()
-        self.clock.start()
+        try:
+            self.clock.start(self.cfg.time_24hr_format)
+        except ConfigParser.Error, e:
+            self.message(str(e))
 
 
 def main():
@@ -578,9 +612,9 @@ def main():
                              % (prog, o))
                 try:
                     if cfg is None:
-                        cfg = AlarmSet()
-                    cfg.set_alarm(hour, minute)
-                except ConfigError, e:
+                        cfg = Config()
+                    set_alarm(hour, minute, cfg.alarm_cmd, cfg.alarm_repeat)
+                except ConfigParser.Error, e:
                     sys.exit('%s: %s' % (prog, e))
             elif o == '--del':
                 try:

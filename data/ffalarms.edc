@@ -749,15 +749,17 @@ collections {
                                   "default" : "hidden", 0.0);
                 }
 
-                public prev_hour, running;
+                public prev_hour, running, h24;
 
                 public clock_cb(val) {
                     new year, month, day, yearday, weekday, hour, minute;
                     new Float:second;
                     date(year, month, day, yearday, weekday,
                          hour, minute, second);
-                    if (get_int(running))
+                    if (val && get_int(running))
                         timer(60.0 - second, "clock_cb", 1);
+                    if (! get_int(h24))
+                        hour = (hour == 0 || hour == 12) ? 12 : (hour % 12);
                     if (hour != get_int(prev_hour)) {
                         set_digit(0, (hour < 10) ? 10 : (hour / 10));
                         set_digit(1, hour % 10);
@@ -772,15 +774,27 @@ collections {
                 public start() {
                     set_int(prev_hour, 88);
                     set_int(running, 1);
-                    clock_cb(0);
+                    clock_cb(1);
                 }
 
                 public stop() {
                     set_int(running, 0);
                 }
+
+                public set_h24(v) {
+                    set_int(h24, v);
+                    if (get_int(running))
+                        clock_cb(0);
+                }
             }
 
             programs {
+                program {
+                    name: "load";
+                    signal: "load";
+                    source: "";
+                    script { set_int(h24, 1); }
+                }
                 program {
                     name: "start";
                     signal: "start";
@@ -793,9 +807,20 @@ collections {
                     source: "";
                     script { stop(); }
                 }
+                program {
+                    name: "24h";
+                    signal: "24hr-format";
+                    source: "";
+                    script { set_h24(1); }
+                }
+                program {
+                    name: "12h";
+                    signal: "12hr-format";
+                    source: "";
+                    script { set_h24(0); }
+                }
             }
         }
-
     }
 
     group {
