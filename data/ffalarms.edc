@@ -64,7 +64,7 @@ styles {
 #define ALPHA_BACKGROUND(NAME, ALPHA) COLOR_BACKGROUND(NAME, BG_RGB ALPHA)
 #define BACKGROUND ALPHA_BACKGROUND("background", 255)
 
-#define HOUR_BUTTON(NAME, REL, OF1, OF2)                                \
+#define HOUR_BUTTON(NAME, REL, OF1_X, OF1_Y, OF2_X, OF2_Y)              \
     part {                                                              \
         name: "hour-"NAME"-button";                                     \
         type: RECT;                                                     \
@@ -77,12 +77,12 @@ styles {
                                                                         \
             rel1 {                                                      \
                 relative: REL;                                          \
-                offset: OF1;                                            \
+                offset: OF1_X OF1_Y;                                    \
                 to: "circle";                                           \
             }                                                           \
             rel2 {                                                      \
                 relative: REL;                                          \
-                offset: OF2;                                            \
+                offset: OF2_X OF2_Y;                                    \
                 to: "circle";                                           \
             }                                                           \
         }                                                               \
@@ -99,12 +99,12 @@ styles {
                                                                         \
             rel1 {                                                      \
                 relative: REL;                                          \
-                offset: OF1;                                            \
+                offset: OF1_X OF1_Y;                                    \
                 to: "circle";                                           \
             }                                                           \
             rel2 {                                                      \
                 relative: REL;                                          \
-                offset: OF2;                                            \
+                offset: OF2_X OF2_Y;                                    \
                 to: "circle";                                           \
             }                                                           \
             text {                                                      \
@@ -114,6 +114,36 @@ styles {
                 align: 0.5 0.5;                                         \
             }                                                           \
         }                                                               \
+        description {                                                   \
+            state: "clicked" 0.0;                                       \
+            inherit: "default" 0.0;                                     \
+            rel1.offset: (OF1_X-40) (OF1_Y-40);                         \
+            rel2.offset: (OF2_X+40) (OF2_Y+40);                         \
+            text.size: 96;                                              \
+        }                                                               \
+    }
+
+#define HOUR_CLICK_PROG(NAME)                                           \
+    program {                                                           \
+        name: "hour-"NAME"-click-1";                                    \
+        signal: "mouse,down,1";                                         \
+        source: "hour-"NAME"-button";                                   \
+        action: ACTION_STOP;                                            \
+        target: "hour-"NAME"-unclick";                                  \
+        after: "hour-"NAME"-click-2";                                   \
+    }                                                                   \
+    program {                                                           \
+        name: "hour-"NAME"-click-2";                                    \
+        action: STATE_SET "clicked" 0.0;                                \
+        target: "hour-"NAME"-button-text";                              \
+    }                                                                   \
+    program {                                                           \
+        name: "hour-"NAME"-unclick";                                    \
+        signal: "mouse,up,1";                                           \
+        source: "hour-"NAME"-button";                                   \
+        action: STATE_SET "default" 0.0;                                \
+        target: "hour-"NAME"-button-text";                              \
+        in: 0.2 0.0;                                                    \
     }
 
 #define BUTTON(NAME, TXT, POS, TO, OF1, OF2)                            \
@@ -545,23 +575,22 @@ collections {
                             1.0 0.0, -2*ICON_H 0, "background",
                             1.0 0, -ICON_H ICON_H, "background", );
 
-            HOUR_BUTTON("1", 0.5+0.5*SIN_33 0.5-0.5*COS_33, -A 0, 0 A);
-            HOUR_BUTTON("2", 0.5+0.5*COS_33 0.5-0.5*SIN_33, -A 0, 0 A);
+            HOUR_BUTTON("1", 0.5+0.5*SIN_33 0.5-0.5*COS_33, -A, 0, 0, A);
+            HOUR_BUTTON("2", 0.5+0.5*COS_33 0.5-0.5*SIN_33, -A, 0, 0, A);
 
-            HOUR_BUTTON("4", 0.5+0.5*COS_33 0.5+0.5*SIN_33, -A -A, 0 0);
-            HOUR_BUTTON("5", 0.5+0.5*SIN_33 0.5+0.5*COS_33, -A -A, 0 0);
+            HOUR_BUTTON("4", 0.5+0.5*COS_33 0.5+0.5*SIN_33, -A, -A, 0, 0);
+            HOUR_BUTTON("5", 0.5+0.5*SIN_33 0.5+0.5*COS_33, -A, -A, 0, 0);
 
-            HOUR_BUTTON("7", 0.5-0.5*SIN_33 0.5+0.5*COS_33, 0 -A, A 0);
-            HOUR_BUTTON("8", 0.5-0.5*COS_33 0.5+0.5*SIN_33, 0 -A, A 0);
+            HOUR_BUTTON("7", 0.5-0.5*SIN_33 0.5+0.5*COS_33, 0, -A, A, 0);
+            HOUR_BUTTON("8", 0.5-0.5*COS_33 0.5+0.5*SIN_33, 0, -A, A, 0);
 
+            HOUR_BUTTON("10", 0.5-0.5*COS_33 0.5-0.5*SIN_33, 0, 0, A, A);
+            HOUR_BUTTON("11", 0.5-0.5*SIN_33 0.5-0.5*COS_33, 0, 0, A, A);
 
-            HOUR_BUTTON("10", 0.5-0.5*COS_33 0.5-0.5*SIN_33, 0 0, A A);
-            HOUR_BUTTON("11", 0.5-0.5*SIN_33 0.5-0.5*COS_33, 0 0, A A);
-
-            HOUR_BUTTON("3", 1.0 0.5, (-A-B) -A/2, -G A/2);
-            HOUR_BUTTON("9", 0.0 0.5, M -A/2, (A+B) A/2);
-            HOUR_BUTTON("6", 0.5 1.0, -A/2 (-A-M), A/2 -M);
-            HOUR_BUTTON("12", 0.5 0, -A/2 M, A/2 (A+M));
+            HOUR_BUTTON("3", 1.0 0.5, (-A-B), -A/2, -G, A/2);
+            HOUR_BUTTON("9", 0.0 0.5, M, -A/2, (A+B), A/2);
+            HOUR_BUTTON("6", 0.5 1.0, -A/2, (-A-M), A/2, -M);
+            HOUR_BUTTON("12", 0.5 0, -A/2, M, A/2, (A+M));
         }
 
         programs {
@@ -569,6 +598,18 @@ collections {
             BUTTON_PROG("minute");
             ICON_DIM_PROG("ok-button");
             ICON_DIM_PROG("cancel-button");
+            HOUR_CLICK_PROG("1");
+            HOUR_CLICK_PROG("2");
+            HOUR_CLICK_PROG("3");
+            HOUR_CLICK_PROG("4");
+            HOUR_CLICK_PROG("5");
+            HOUR_CLICK_PROG("6");
+            HOUR_CLICK_PROG("7");
+            HOUR_CLICK_PROG("8");
+            HOUR_CLICK_PROG("9");
+            HOUR_CLICK_PROG("10");
+            HOUR_CLICK_PROG("11");
+            HOUR_CLICK_PROG("12");
         }
     }
 
