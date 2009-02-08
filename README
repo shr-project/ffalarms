@@ -93,15 +93,12 @@ Limitations
     side you can set Silent profile for the night if you wish and it
     will not prevent the alarm to wake you up).
 
-  - Phone calls: if an alarm is triggered in the middle of the phone
-    call it will switch to stereoout alsa state muting the phone call.
-
 - Time selection:
- 
-  - There is currently no way to select a date of an alarm, it will
-    schedule it for to day if the given time have not yet passed or
-    for tomorrow otherwise.  This is reasonable default but an option
-    to select a date from a finger friendly calendar would be nice.
+
+  - There is currently no way to select a date of an alarm, it will be
+    scheduled for today if the given time have not yet passed or for
+    tomorrow otherwise.  This is reasonable default but an option to
+    select a date from a finger friendly calendar would be nice.
 
   - There is currently no way to schedule periodic alarms, for example
     every day, or only on Mondays.
@@ -112,7 +109,8 @@ Limitations
 - Currently the list of alarms is not refreshed if the alarms have
   been altered by another instance of ffalarms or the alarm finished.
 
-- There is currently no way to configure the LED night clock.
+- There is currently only one configurable feature of LED night clock:
+  12/24 hour mode.
 
 
 Configuration
@@ -145,6 +143,12 @@ But why would you use a wav file if you have mplayer installed?
 Reference %(file)s in the player option will be expanded to a value of
 file option with leading ~ replaced with the home directory and proper
 shell quoting if needed.
+
+LED clock by default uses 24 hour format, you can change it to 12 hour
+format by adding the following to the configuration file
+
+    [ledclock]
+    24hr_format=no
 
 
 Command line options
@@ -195,9 +199,6 @@ happens press key q to close the LED clock.
 TODO
 ----
 
-- Should restore original alsa state (from before the alarm) started
-  after stopping/finishing, currently just sets steroout alsa state.
-
 - Should preserve list selection on list update.
 
 - The list would get more readable if the items would be of the form
@@ -206,6 +207,24 @@ TODO
 
 - May support "repeat=5m" for playing the alarm for five minutes
   instead of given number of times.
+
+
+Versions
+--------
+
+0.2 (2009-02-08)
+................
+
+- restore original ALSA state after the alarm (instead of setting stereoout)
+- raise puzzle when alarm starts (unless in LED clock mode)
+- LED clock: use bigger digits if hour < 20
+- LED clock: add configuration option to select 12 or 24 time format
+- adding alarm: hours become bigger when clicked for visual feedback
+
+0.1 (2009-01-31)
+................
+
+- Initial release
 
 
 References
