@@ -178,19 +178,8 @@ styles {
         }                                                               \
         description {                                                   \
             state: "selected" 0.0;                                      \
-            align: 0.5 0.5;                                             \
+            inherit: "default" 0.0;                                     \
             color: 0 0 0 80;                                            \
-                                                                        \
-            rel1 {                                                      \
-                relative: POS1;                                         \
-                offset: OF1;                                            \
-                to: TO1;                                                \
-            }                                                           \
-            rel2 {                                                      \
-                relative: POS2;                                         \
-                offset: OF2;                                            \
-                to: TO2;                                                \
-            }                                                           \
         }                                                               \
     }                                                                   \
     part {                                                              \
@@ -309,20 +298,8 @@ styles {
         }                                                               \
         description {                                                   \
             state: "selected" 0.0;                                      \
-            align: ALIGN;                                               \
-            aspect: 1 1;                                                \
+            inherit: "default" 0.0;                                     \
             color: 0 0 0 80;                                            \
-                                                                        \
-            rel1 {                                                      \
-                relative: POS1;                                         \
-                offset: OF1;                                            \
-                to: TO1;                                                \
-            }                                                           \
-            rel2 {                                                      \
-                relative: POS2;                                         \
-                offset: OF2;                                            \
-                to: TO2;                                                \
-            }                                                           \
         }                                                               \
     }                                                                   \
     part {                                                              \
@@ -986,14 +963,6 @@ collections {
                     state: "selected" 0.0;
                     inherit: "default" 0.0;
                     color: 153 190 203 128;
-                    rel1 {
-                        relative: 0.0 0.0;
-                        offset: 1 1;
-                    }
-                    rel2 {
-                        relative: 1.0 1.0;
-                        offset: -2 -2;
-                    }
                 }
             }
             part {
