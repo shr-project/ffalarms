@@ -31,6 +31,8 @@
 #define LED_COLOR 0 255 0 255
 #define BG_RGB 226 226 226
 
+#define PUZZLE_TIMEOUT 5
+#define PUZZLE_INTER_TIMEOUT 1
 
 styles {
     style {
@@ -343,6 +345,12 @@ styles {
                 align: 0.5 0.5;                                         \
             }                                                           \
         }                                                               \
+        description {                                                   \
+            state: "restart" 0.0;                                       \
+            inherit: "default" 0.0;                                     \
+            color: 255 0 0 255;                                         \
+            text.size: 60;                                              \
+        }                                                               \
     }
 
 #define BUTTON_PROG(NAME)                                               \
@@ -642,7 +650,13 @@ collections {
                 name: "start";
                 signal: "start";
                 source: "";
-                script { start(); }
+                script { start(1); }
+            }
+            program {
+                name: "stop";
+                signal: "mouse,clicked,1";
+                source: "cancel-button";
+                script { set_int(cur_num, -1); }
             }
             program {
                 name: "mouse-down";
@@ -688,14 +702,31 @@ collections {
                 }
             }
 
-            public start() {
+            public restart(val) {
+                if (get_int(cur_num) == -1)
+                    return;
+                set_int(cur_num, -2);
+                for (new i = 0; i < btn_cnt; i++) {
+                    set_state(btns[i], "default", 0.0);
+                    set_text(btns_txt[i], "?");
+                    set_state(btns_txt[i], "restart", 0.0);
+                }
+                timer(PUZZLE_INTER_TIMEOUT, "start", 0);
+            }
+
+            public start(val) {
+                if (!val && get_int(cur_num) == -1)
+                    return;
                 set_perm(puzzle);
                 new s[10];
                 for (new i = 0; i < btn_cnt; i++) {
+                    set_state(btns[i], "default", 0.0);
+                    set_state(btns_txt[i], "default", 0.0);
                     snprintf(s, 10, "%d", fetch_int(puzzle, i) + 1);
                     set_text(btns_txt[i], s);
                 }
                 set_int(cur_num, 0);
+                timer(PUZZLE_TIMEOUT, "restart", 0);
             }
 
             public mouse_down(num) {
@@ -705,7 +736,7 @@ collections {
                 if (fetch_int(puzzle, num) == cur) {
                     set_int(cur_num, cur + 1);
                     set_state(btns[num], "selected", 0.0);
-                } else {
+                } else if (cur >= 0) {
                     set_int(cur_num, 0);
                     for (new i = 0; i < btn_cnt; i++)
                         set_state(btns[i], "default", 0.0);

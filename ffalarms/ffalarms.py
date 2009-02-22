@@ -57,8 +57,6 @@ CONFIG_FILE='~/.ffalarmsrc'
 
 COMMANDS = ['alsactl', 'amixer']
 ALSASTATE='/usr/share/openmoko/scenarios/stereoout.state'
-PUZZLE_TIMEOUT=5
-PUZZLE_AUTO_TIMEOUT=10
 MSG_TIMEOUT=5
 BRIGHTNESS_FILE='/sys/class/backlight/pcf50633-bl/brightness'
 
@@ -339,11 +337,10 @@ class Puzzle(edje.Edje):
         self.signal_callback_add("mouse,clicked,1", "cancel-button", self.dismiss)
         self.signal_callback_add("solved", "", self.solved)
 
-    def start(self, label, timeout=PUZZLE_TIMEOUT):
+    def start(self, label):
         self.part_text_set("label", label)
         self.signal_emit("start", "");
         self.started = True
-        self.timer = ecore.timer_add(timeout, self.dismiss)
         self.stack.push(self)
 
     def solved(self, *a):
@@ -353,7 +350,6 @@ class Puzzle(edje.Edje):
 
     def dismiss(self, *a):
         self.started = False
-        self.timer.stop()
         self.stack.pop(self)
 
 
@@ -522,8 +518,7 @@ class AlarmList(edje.Edje):
         self._dirty_update_sigusr1_handler()
         if not self.clock in self.stack:
             puzzle = Puzzle(self.stack, self.filename, self.delete_alarm, [])
-            puzzle.start("Confirm turning off the running alarm",
-                         timeout=PUZZLE_AUTO_TIMEOUT)
+            puzzle.start("Confirm turning off the running alarm")
         self.stack.ee.raise_()
 
     def delete_alarm_after_puzzle(self, edj, signal, source):
