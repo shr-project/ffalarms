@@ -58,7 +58,8 @@ CONFIG_FILE='~/.ffalarmsrc'
 COMMANDS = ['alsactl', 'amixer']
 ALSASTATE='/usr/share/openmoko/scenarios/stereoout.state'
 MSG_TIMEOUT=5
-BRIGHTNESS_FILE='/sys/class/backlight/pcf50633-bl/brightness'
+BRIGHTNESS_FILE_2_6_28='/sys/class/backlight/gta02-bl/brightness'
+BRIGHTNESS_FILE_2_6_24='/sys/class/backlight/pcf50633-bl/brightness'
 
 MAGIC='\n##ffalarms##'
 MAGIC_LEN=30
@@ -362,16 +363,22 @@ class LandscapeClock(edje.Edje):
         self.hour = self.minute = self.brightness = None
         self.signal_callback_add("mouse,clicked,1", "cancel-button", self.stop)
         self.on_key_down_add(self.key_down_cb)
+        if os.path.exists(BRIGHTNESS_FILE_2_6_28):
+            self.brightness_file = BRIGHTNESS_FILE_2_6_28
+            self.dim_brightness = 85
+        else:
+            self.brightness_file = BRIGHTNESS_FILE_2_6_24
+            self.dim_brightness = 21
 
     def start(self, h24=True):
         try:
-            self.brightness = int(file(BRIGHTNESS_FILE).readline())
+            self.brightness = int(file(self.brightness_file).readline())
         except IOError:
             self.brightness = None
         else:
-            self._set_brightness(21)
+            self._set_brightness(self.dim_brightness)
         self.signal_emit(("12hr-format", "24hr-format")[bool(h24)], "")
-        self.signal_emit("start", "");
+        self.signal_emit("start", "")
         self.stack.push(self)
         self.stack.ee.fullscreen = True
         self.focus = True
@@ -385,7 +392,7 @@ class LandscapeClock(edje.Edje):
             self._set_brightness(self.brightness)
 
     def _set_brightness(self, value):
-        f = file(BRIGHTNESS_FILE, 'w')
+        f = file(self.brightness_file, 'w')
         f.write('%d\n' % value)
         f.close()
 
