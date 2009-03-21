@@ -39,7 +39,6 @@ import os.path
 import re
 import time
 import datetime
-import calendar
 import signal
 import getopt
 import ConfigParser
@@ -148,12 +147,7 @@ def set_alarm(hour, minute, alarm_cmd, repeat):
     t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if t < now:
         t = t + datetime.timedelta(1)
-    # XXX this will only work if now and alarm time are both DST or non-DST
-    if time.localtime().tm_isdst and time.daylight:
-        tz_offset = time.altzone
-    else:
-        tz_offset = time.timezone
-    timestamp = calendar.timegm(t.timetuple()) + tz_offset
+    timestamp = time.mktime(t.timetuple())
 
     atfile = os.path.join(ATSPOOL, '%d.ffalarms.%d' % (timestamp, os.getpid()))
     f = file(atfile, 'w')
