@@ -199,6 +199,10 @@ happens press key q to close the LED clock.
 TODO
 ----
 
+- proper fix to to a Daylight Saving Time problem reported by 
+  Ken Young, current quick fix only works if now and alarm time are
+  both DST or non-DST
+
 - Should preserve list selection on list update.
 
 - The list would get more readable if the items would be of the form

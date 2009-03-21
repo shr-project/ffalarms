@@ -148,7 +148,12 @@ def set_alarm(hour, minute, alarm_cmd, repeat):
     t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if t < now:
         t = t + datetime.timedelta(1)
-    timestamp = calendar.timegm(t.timetuple()) + time.timezone
+    # XXX this will only work if now and alarm time are both DST or non-DST
+    if time.localtime().tm_isdst and time.daylight:
+        tz_offset = time.altzone
+    else:
+        tz_offset = time.timezone
+    timestamp = calendar.timegm(t.timetuple()) + tz_offset
 
     atfile = os.path.join(ATSPOOL, '%d.ffalarms.%d' % (timestamp, os.getpid()))
     f = file(atfile, 'w')
