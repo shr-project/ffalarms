@@ -41,6 +41,13 @@ styles {
     }
 }
 
+#define PROG(NAME, SIGNAL, SOURCE, REST)                                \
+    program {                                                           \
+        name: NAME;                                                     \
+        signal: SIGNAL;                                                 \
+        source: SOURCE;                                                 \
+        REST;                                                           \
+    }
 
 #define COLOR_BACKGROUND(NAME, COLOR)                                   \
     part {                                                              \
@@ -68,7 +75,7 @@ styles {
 
 #define HOUR_BUTTON(NAME, REL, OF1_X, OF1_Y, OF2_X, OF2_Y)              \
     part {                                                              \
-        name: "hour-"NAME"-button";                                     \
+        name: NAME"-hour-button";                                       \
         type: RECT;                                                     \
         mouse_events: 1;                                                \
                                                                         \
@@ -90,7 +97,7 @@ styles {
         }                                                               \
     }                                                                   \
     part {                                                              \
-        name: "hour-"NAME"-button-text";                                \
+        name: NAME;                                                     \
         type: TEXT;                                                     \
         mouse_events: 0;                                                \
         repeat_events: 1;                                               \
@@ -123,29 +130,11 @@ styles {
             rel2.offset: (OF2_X+40) (OF2_Y+40);                         \
             text.size: 96;                                              \
         }                                                               \
-    }
-
-#define HOUR_CLICK_PROG(NAME)                                           \
-    program {                                                           \
-        name: "hour-"NAME"-click-1";                                    \
-        signal: "mouse,down,1";                                         \
-        source: "hour-"NAME"-button";                                   \
-        action: ACTION_STOP;                                            \
-        target: "hour-"NAME"-unclick";                                  \
-        after: "hour-"NAME"-click-2";                                   \
-    }                                                                   \
-    program {                                                           \
-        name: "hour-"NAME"-click-2";                                    \
-        action: STATE_SET "clicked" 0.0;                                \
-        target: "hour-"NAME"-button-text";                              \
-    }                                                                   \
-    program {                                                           \
-        name: "hour-"NAME"-unclick";                                    \
-        signal: "mouse,up,1";                                           \
-        source: "hour-"NAME"-button";                                   \
-        action: STATE_SET "default" 0.0;                                \
-        target: "hour-"NAME"-button-text";                              \
-        in: 0.2 0.0;                                                    \
+        description {                                                   \
+            state: "disabled" 0.0;                                      \
+            inherit: "default" 0.0;                                     \
+            color: 128 128 128 255;                                     \
+        }                                                               \
     }
 
 #define BUTTON(NAME, TXT, POS, TO, OF1, OF2)                            \
@@ -549,10 +538,10 @@ collections {
                 }
             }
 
-            BUTTON("hour", "HH", 0.5 0.5, "circle",
+            BUTTON("am-pm", "AM", 0.5 0.5, "circle",
                    (-3/2*A-G) -A/2, (-1/2*A-G) A/2);
+            BUTTON("hour", "HH", 1.0 0.0, "am-pm", G 0, (A+G) A);
             BUTTON("minute", "00", 1.0 0.0, "hour", G 0, (A+G) A);
-            BUTTON("am-pm", "AM", 1.0 0.0, "minute", G 0, (A+G) A);
 
             CANCEL_BUTTON;
 
@@ -575,26 +564,113 @@ collections {
             HOUR_BUTTON("3", 1.0 0.5, (-A-B), -A/2, -G, A/2);
             HOUR_BUTTON("9", 0.0 0.5, M, -A/2, (A+B), A/2);
             HOUR_BUTTON("6", 0.5 1.0, -A/2, (-A-M), A/2, -M);
-            HOUR_BUTTON("12", 0.5 0, -A/2, M, A/2, (A+M));
+            HOUR_BUTTON("0", 0.5 0, -A/2, M, A/2, (A+M));
         }
 
         programs {
-            BUTTON_PROG("hour");
-            BUTTON_PROG("minute");
             ICON_DIM_PROG("ok-button");
             ICON_DIM_PROG("cancel-button");
-            HOUR_CLICK_PROG("1");
-            HOUR_CLICK_PROG("2");
-            HOUR_CLICK_PROG("3");
-            HOUR_CLICK_PROG("4");
-            HOUR_CLICK_PROG("5");
-            HOUR_CLICK_PROG("6");
-            HOUR_CLICK_PROG("7");
-            HOUR_CLICK_PROG("8");
-            HOUR_CLICK_PROG("9");
-            HOUR_CLICK_PROG("10");
-            HOUR_CLICK_PROG("11");
-            HOUR_CLICK_PROG("12");
+            PROG("load", "load", "", script { start(); });
+            PROG("digit-down", "mouse,down,1", "*-hour-button",
+                 script { digit_down(src); });
+            PROG("digit-up", "mouse,up,1", "*-hour-button",
+                 script { digit_up(); }
+                in: 0.2 0.0; );
+            PROG("hour-click", "mouse,clicked,1", "hour-button",
+                 script { update(0); });
+            PROG("minute-click", "mouse,clicked,1", "minute-button",
+                 script { update(1); });
+            PROG("am-pm-click", "mouse,clicked,1", "am-pm-button",
+                 script {
+                     set_int(am_pm, 1 - get_int(am_pm));
+                     set_text(PART:"am-pm", get_int(am_pm) ? "PM" : "AM");
+                     update(get_int(selected));
+                     update_hour();
+                 });
+        }
+
+        script {
+            public selected, am_pm, digit, hour, minute;
+
+            new const txt[] = {
+                PART:"0", PART:"1", PART:"2", PART:"3", PART:"4", PART:"5",
+                PART:"6", PART:"7", PART:"8", PART:"9", PART:"10", PART:"11"
+            }
+
+            public start () {
+                set_int(selected, 0);
+                set_int(am_pm, 0);
+                set_int(digit, -1);
+                set_int(hour, -1);
+                set_int(minute, -1);
+                set_state(PART:"hour-button", "selected", 0.0);
+            }
+
+            public digit_down(src[]) {
+                new num = atoi(src), sel = get_int(selected);
+                if (sel < 2 && get_int(digit) != num) {
+                    stop_program(PROGRAM:"digit-up");
+                    set_state(txt[num], "clicked", 0.0);
+                    set_int(digit, num);
+                    if (sel == 0) {
+                        set_int(hour, num);
+                        update_hour();
+                    } else {
+                        new s[10];
+                        set_int(minute, 5 * num);
+                        snprintf(s, 10, "%d%d", (5 * num) / 10, (5 * num) % 10);
+                        set_text(PART:"minute", s);
+                        snprintf(s, 10, "minute-%d", 5 * num);
+                        emit("clicked", s);
+                    }
+                    update(sel + 1);
+                }
+            }
+
+            public digit_up() {
+                new d = get_int(digit), sel = get_int(selected), s[5];
+                if (d >= 0) {
+                    set_state(txt[d], (sel < 2) ? "default" : "disabled", 0.0);
+                    if (sel == 1)
+                        snprintf(s, 10, "%d%d", (5 * d) / 10, (5 * d) % 10);
+                    else
+                        snprintf(s, 5, "%d", (get_int(am_pm)) ? 12 + d : d);
+                    set_text(txt[d], s);
+                    set_int(digit, -1);
+                }
+            }
+
+            public update_hour()
+            {
+                new h = get_int(hour), s[10];
+                if (h >= 0) {
+                    if (get_int(am_pm))
+                        h += 12;
+                    snprintf(s, 10, "%d", h);
+                    set_text(PART:"hour", s);
+                    snprintf(s, 10, "hour-%d", h);
+                    emit("clicked", s);
+                }
+            }
+
+            public update(sel) {
+                new s[5], d=get_int(digit), pm=get_int(am_pm);
+                set_int(selected, sel);
+                for (new i = 0; i < 12; i++) {
+                    if (i == d)
+                        continue;
+                    if (sel == 1)
+                        snprintf(s, 10, "%d%d", (5 * i) / 10, (5 * i) % 10);
+                    else
+                        snprintf(s, 5, "%d", (pm) ? 12 + i : i);
+                    set_text(txt[i], s);
+                    set_state(txt[i], (sel < 2) ? "default" : "disabled", 0.0);
+                }
+                set_state(PART:"hour-button",
+                          (sel == 0) ? "selected" : "default", 0.0);
+                set_state(PART:"minute-button",
+                          (sel == 1) ? "selected" : "default", 0.0);
+            }
         }
     }
 

@@ -267,63 +267,39 @@ class ClockFace(edje.Edje):
     def __init__(self, stack, filename, callback):
         edje.Edje.__init__(self, stack.canvas, file=filename, group='clock-group')
         self.stack = stack
-        self.signal_emit("select", "hour-button")
-        self.signal_callback_add("mouse,clicked,1", "hour-*-button",
-                                 self.set_hour_or_minute)
-        self.signal_callback_add("mouse,clicked,1", "hour-button", self.select)
-        self.signal_callback_add("mouse,clicked,1", "minute-button", self.select)
-        self.signal_callback_add("mouse,clicked,1", "am-pm-button", self.am_pm_click)
         self.signal_callback_add("mouse,clicked,1", "ok-button", self.dismiss)
         self.signal_callback_add("mouse,clicked,1", "cancel-button", self.dismiss)
+        self.signal_callback_add("clicked", "hour-*", self.set_hour)
+        self.signal_callback_add("clicked", "minute-*", self.set_minute)
         self.callback = callback
-        self.selected = 0
 
     def start(self):
-        self.hour=None
-        self.minute=0
-        self.am_pm=0
+        self.hour = None
+        self.minute = 0
         self.stack.push(self)
 
     def dismiss(self, edj, signal, source):
         if self.hour is None and source == 'ok-button':
             return
         self.stack.pop(self)
-        if source != 'cancel-button' and self.hour is not None:
-            self.callback(self.hour + 12 * self.am_pm, self.minute)
+        if source == 'ok-button':
+            self.callback(self.hour, self.minute)
 
-    def set_hour_or_minute(self, edj, signal, source, **ka):
+    def set_hour(self, edj, signal, source, **ka):
         try:
-            h = int(source[1:].split('-')[1])
+            h = int(source.split('-')[1])
         except ValueError:
             return
-        if not 1 <= h <= 12:
-            return
-        if h == 12:
-            h = 0
-        if self.selected == 0:
+        if h >= 0 and h < 24:
             self.hour = h
-            edj.part_text_set("hour", '%02d' % (h + 12 * self.am_pm))
-            edj.signal_emit("unselect", "hour-button")
-            edj.signal_emit("select", "minute-button")
-            self.selected = 1
-        elif self.selected == 1:
-            self.minute = 5 * h
-            edj.part_text_set("minute", '%02d' % self.minute)
-            edj.signal_emit("unselect", "minute-button")
-            self.selected = -1
 
-    def select(self, edj, signal, source):
-        sel = self.names.index(source)
-        if self.selected != sel and self.selected >= 0:
-            edj.signal_emit("unselect", self.names[self.selected])
-        self.selected = sel
-        edj.signal_emit("select", self.names[self.selected])
-
-    def am_pm_click(self, edj, signal, source):
-        self.am_pm = not self.am_pm
-        edj.part_text_set("am-pm", ("AM", "PM")[self.am_pm])
-        if self.hour is not None:
-            edj.part_text_set("hour", '%02d' % (self.hour + 12 * self.am_pm))
+    def set_minute(self, edj, signal, source, **ka):
+        try:
+            h = int(source.split('-')[1])
+        except ValueError:
+            return
+        if h >= 0 and h < 60:
+            self.minute = h
 
 
 class Puzzle(edje.Edje):
