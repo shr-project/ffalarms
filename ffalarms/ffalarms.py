@@ -127,7 +127,7 @@ if not MAGIC in ALARM_SCRIPT[:MAGIC_LEN]:
 DEFAULT_CONFIG="""\
 [alarm]
 player=aplay %(file)s
-file=/opt/Qtopia/sounds/alarm.wav
+file=/usr/share/ffalarms/alarm.wav
 ## repeat playing the file that many times
 repeat=300
 

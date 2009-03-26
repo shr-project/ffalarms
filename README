@@ -67,8 +67,8 @@ Features
 
 - Can be configured to use any media player, mplayer is of course
   recommended, but it may work with aplay from alsa-utils-aplay, if
-  wav files are enough for you.  If you have qtopia-phone-x11 and
-  alsa-utils-aplay installed it should work out of the box.
+  wav files are enough for you.  If you have alsa-utils-aplay
+  installed it should work out of the box.
 
 - Adding, listing, and removing alarms is possible from command line
   (see Command line options below).
@@ -116,9 +116,9 @@ Limitations
 Configuration
 -------------
 
-On Om 2008.12 install alsa-utils-aplay and qtopia-phone-x11 together
-with ffalarms and it should work out of the box.  But if you want to
-use other alarm file or player than read on.
+On Om 2008.12 install alsa-utils-aplay together with ffalarms and it
+should work out of the box.  But if you want to use other alarm file
+or player than read on.
 
 The configuration is done through a file ~/.ffalarms.  The reasonable
 default configuration is written for you automatically when you add an
@@ -127,7 +127,7 @@ customize if you have it). It mostly looks like:
 
     [alarm]
     player=aplay %(file)s
-    file=/opt/Qtopia/sounds/alarm.wav
+    file=/usr/share/ffalarms/alarm.wav
     repeat=300
 
 Which will play a given file 300 times (ie. for about 3 minutes).  But
@@ -136,7 +136,7 @@ the same effect (and then omit repeat as it obviously defaults to 1)
 
     [alarm]
     player=mplayer -really-quiet -loop 300 %(file)s
-    file=/opt/Qtopia/sounds/alarm.wav
+    file=/usr/share/ffalarms/alarm.wav
 
 But why would you use a wav file if you have mplayer installed?
 
@@ -186,6 +186,9 @@ Some images are generated from SVG icons available in Debian package
 gnome-icon-theme (licenced under GNU GPL v2) which says they are
 available from [11], this includes go-last.png, gtk-close.png, and
 ffalarms.svg (based on appointment-new.svg).
+
+Alarm file alarm.wav is taken from Trolltech's Qtopia Open Source
+edition version 4.3.2 which is licensed under GNU GPL v2.
 
 
 Bugs

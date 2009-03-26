@@ -1,3 +1,3 @@
-include data/ffalarms.edc data/ffalarms.desktop
+include data/ffalarms.edc data/ffalarms.desktop data/alarm.wav
 include images/*.png images/ffalarms.svg
 include MANIFEST.in README COPYING ffalarms_*.bb

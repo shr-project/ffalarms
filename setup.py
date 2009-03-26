@@ -38,7 +38,7 @@ def main():
           url='http://ffalarms.projects.openmoko.org/',
           packages=['ffalarms'],
           scripts=['ffalarms/ffalarms'],
-          data_files=[('ffalarms', ['data/ffalarms.edj']),
+          data_files=[('ffalarms', ['data/ffalarms.edj', 'data/alarm.wav']),
                       ('applications', ['data/ffalarms.desktop']),
                       ('pixmaps', ['images/ffalarms.png'])],
           cmdclass={'build': build})
