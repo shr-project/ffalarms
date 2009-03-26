@@ -40,6 +40,7 @@ import re
 import time
 import datetime
 import signal
+import stat
 import getopt
 import ConfigParser
 
@@ -139,6 +140,7 @@ repeat=300
 24hr_format=yes
 """
 
+ATD_CONTACT_ERR='Could not contact atd daemon, the alarm may not work'
 
 ECORE_EVENT_SIGNAL_USER = 1
 
@@ -147,6 +149,10 @@ class ConfigError(ConfigParser.Error):
     pass
 
 
+def alarm_handler(*a):
+    raise IOError(ATD_CONTACT_ERR)
+    
+
 def set_alarm(hour, minute, alarm_cmd, repeat):
     for cmd in COMMANDS + [alarm_cmd.split(' ', 1)[0],]:
         if os.system('which %s > /dev/null' % cmd) !=0:
@@ -154,6 +160,9 @@ def set_alarm(hour, minute, alarm_cmd, repeat):
     for fn in (ALSASTATE,):
         if not os.path.exists(fn):
             raise ConfigError('%s: file not found' % fn)
+    trig = os.path.join(ATSPOOL, 'trigger')
+    if not os.path.exists(trig) or not stat.S_ISFIFO(os.stat(trig).st_mode):
+        raise IOError('Could not contact atd daemon, the alarm was not set')
 
     now = datetime.datetime.now()
     t = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -168,9 +177,15 @@ def set_alarm(hour, minute, alarm_cmd, repeat):
     f.close()
     os.chmod(atfile, 0755)
 
-    f = file(os.path.join(ATSPOOL, 'trigger'), 'a')
-    f.write('\n')
-    f.close()
+    signal.alarm(1)
+    f = file(trig, 'a')
+    try:
+        if not stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
+            raise IOError(ATD_CONTACT_ERR)
+        f.write('\n')
+    finally:
+        f.close()
+        signal.alarm(0)
     return t
 
 
@@ -550,8 +565,12 @@ class AlarmList(edje.Edje):
     def add_alarm(self, hour, minute):
         try:
             set_alarm(hour, minute, self.cfg.alarm_cmd, self.cfg.alarm_repeat)
-        except (ConfigParser.Error, IOError), e:
-            self.message(str(e), title="Unable to add alarm")
+        except Exception, e:
+            if isinstance(e, (ConfigParser.Error, IOError)):
+                msg = str(e)
+            else:
+                msg = '%s: %s' % (e.__class__.__name__, e)
+            self.message(msg, title="Unable to add alarm")
         else:
             self.update_list()
 
@@ -596,6 +615,7 @@ def main():
             sys.exit()
         else:
             raise RuntimeError('%s: unhandled option: %s' % (prog, o))
+    signal.signal(signal.SIGALRM, alarm_handler)
     if actions:
         cfg = None
         for o, a in actions:
