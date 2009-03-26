@@ -462,10 +462,10 @@ class AlarmList(edje.Edje):
         self.list = KineticList(self.stack.canvas, file=filename, item_height=85,
                                 with_thumbnails=False)
         self.signal_callback_add("open", "*", self.new_alarm)
-        self.update_list()
-        self.part_swallow('list', self.list)
         self.msg_timer = None
         self.msg = edje.Edje(self.stack.canvas, file=filename, group='message-group')
+        self.update_list()
+        self.part_swallow('list', self.list)
         self.msg.signal_callback_add("mouse,clicked,1", "cancel-button", self.message_hide)
         self.clock = LandscapeClock(self.stack, filename)
         self._dirty_add_sigusr1_handler()
@@ -480,10 +480,11 @@ class AlarmList(edje.Edje):
     def _dirty_update_sigusr1_handler(self):
         ecore.EventHandler(ECORE_EVENT_SIGNAL_USER, lambda *a: True)
 
-    def message(self, msg, timeout=MSG_TIMEOUT):
+    def message(self, msg, timeout=None, title=None):
         if self.msg_timer is not None:
             self.msg_timer.stop()
         self.msg.part_text_set("message", msg)
+        self.msg.part_text_set("title", title or "")
         self.stack.push(self.msg)
         self.msg.raise_()
         if timeout is not None:
@@ -499,7 +500,12 @@ class AlarmList(edje.Edje):
         k.elements = []
         k.selection = [] # XXX?
         k.freeze()
-        for t, fn in list_alarms():
+        try:
+            lst = list_alarms()
+        except OSError, e:
+            self.message(str(e), title="Unable to update list of alarms")
+            return
+        for t, fn in lst:
             name = time.asctime(time.localtime(t))
             k.row_add(name, t, fn)
         k.thaw()
@@ -534,7 +540,7 @@ class AlarmList(edje.Edje):
             kill_running_alarms()
             msg = None
         if msg is not None:
-            self.message(msg)
+            self.message(msg, title='Problems while deleting alarms')
         self.update_list()
 
     def new_alarm(self, edj, signal, source):
@@ -544,8 +550,8 @@ class AlarmList(edje.Edje):
     def add_alarm(self, hour, minute):
         try:
             set_alarm(hour, minute, self.cfg.alarm_cmd, self.cfg.alarm_repeat)
-        except ConfigParser.Error, e:
-            self.message(str(e))
+        except (ConfigParser.Error, IOError), e:
+            self.message(str(e), title="Unable to add alarm")
         else:
             self.update_list()
 
