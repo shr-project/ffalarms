@@ -31,7 +31,7 @@ Options:
       --version              display version and exit
 """
 
-__version__ = "0.2"
+__version__ = "0.2.1"
 
 import sys
 import os

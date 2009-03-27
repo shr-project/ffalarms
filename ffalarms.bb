@@ -6,6 +6,7 @@ MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
 DEPENDS = "edje-native python-native"
+PV = "0.2.1"
 PR = "r0"
 
 # Pure Python plus Edje interface

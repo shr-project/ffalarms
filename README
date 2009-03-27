@@ -35,59 +35,78 @@ Author
 Inspirations
 ------------
 
-The layout of the user interface is clearly inspired by that of Neon
-[1], a nice and finger friendly image viewer.  The confirmation puzzle
-idea is taken from Zhone [2], FSO [3] usable demo application.  The 7
-segment LED-like night clock is inspired by the LED clock [4], which I
-have discovered on opkg.org while having ffalarms useable on my Neo
-FreeRuner (though not yet in a releasable state).
+The layout of the user interface is clearly inspired by that of Neon_
+(also `on opkg.org`__), a nice and finger friendly image viewer.  The
+confirmation puzzle idea is taken from Zhone_, FSO_ usable demo
+application.  The 7 segment LED-like night clock is inspired by the
+`LED clock`_ (`on opkg.org`__), which I have discovered on opkg.org_
+while having ffalarms useable on my Neo FreeRuner (though not yet in a
+releasable state).
+
+.. _Neon: http://neon.projects.openmoko.org/
+.. __: http://www.opkg.org/package_62.html
+.. _Zhone: http://wiki.openmoko.org/wiki/Zhone
+.. _FSO: http://www.freesmartphone.org/
+.. _LED clock: http://projects.openmoko.org/projects/ledclock/,
+.. __: http://www.opkg.org/package_104.html
+.. _opkg.org: http://www.opkg.org/
 
 
 Dependencies
 ------------
 
-Mostly Python [5] and EFL [6].  
+Mostly Python_ and EFL_.
 
-python-edje python-ecore python-re python-datetime atd
-alsa-utils-amixer alsa-utils-alsactl openmoko-alsa-scenarios
-ttf-liberation-sans
+.. _Python: http://python.org/
+.. _EFL: http://enlightenment.org/p.php?p=about/efl&l=en
+
+::
+
+    python-edje python-ecore python-re python-datetime atd
+    alsa-utils-amixer alsa-utils-alsactl openmoko-alsa-scenarios
+    ttf-liberation-sans
 
 
 Suggested media players
 -----------------------
 
-mplayer or alsa-utils-aplay (voc, wav, raw or au only)
+``mplayer`` or ``alsa-utils-aplay`` (voc, wav, raw or au only)
 
 
 Features
 --------
 
-- It is developed and works on Om 2008.12 (not yet tested on any other
-  distribution).
+- It is developed and works on `Om 2008.12`_ and SHR_ (for SHR you
+  need to install atd-over-fso from ffalarms download page to have atd
+  daemon working on top of FSO_).
 
-- Can be configured to use any media player, mplayer is of course
-  recommended, but it may work with aplay from alsa-utils-aplay, if
-  wav files are enough for you.  If you have alsa-utils-aplay
+- Can be configured to use any media player, MPlayer_ is of course
+  recommended, but it may work with aplay_ from ``alsa-utils-aplay``,
+  if wav files are enough for you.  If you have ``alsa-utils-aplay``
   installed it should work out of the box.
 
 - Adding, listing, and removing alarms is possible from command line
-  (see Command line options below).
+  (see `Command line options`_ below).
 
-- LED clock and confirmation puzzles are completely themeable, as
-  their implemented in Edje [7] using Embryo [8] for logic.
+- LED clock, confirmation puzzles and analog clock alarm selection are
+  completely themeable, as they are implemented in Edje_ using Embryo_
+  for logic.
 
-- It currently depends only on atd for alarm scheduling, hope it makes
-  it more portable.
+- It currently depends only on ``atd`` for alarm scheduling, hope it
+  makes it more portable.
+
+.. _MPlayer: http://www.mplayerhq.hu/design7/news.html
+.. _aplay: http://en.wikipedia.org/wiki/Aplay
+.. _Om 2008.12: http://wiki.openmoko.org/wiki/Om_2008.12_Update
+.. _Edje: http://wiki.enlightenment.org/index.php/Edje
+.. _Embryo: http://wiki.enlightenment.org/index.php/Embryo
+.. _SHR: http://wiki.openmoko.org/wiki/SHR
 
 
 Limitations
 -----------
 
 - Ffalarms knows nothing about:
-
-  - suspend: so if Neo resumes to play an alarm at a given time it may
-    suspend soon before the alarm catches your attention, so currently
-    it is up to you to set proper suspend options
 
   - Silent profiles: it will play the alarm any way (but on a surplus
     side you can set Silent profile for the night if you wish and it
@@ -104,26 +123,27 @@ Limitations
     every day, or only on Mondays.
 
 - Ffalarms is currently only configurable through a configuration file
-  (see Configuration below)
+  (see Configuration_ below)
 
 - Currently the list of alarms is not refreshed if the alarms have
   been altered by another instance of ffalarms or the alarm finished.
 
 - There is currently only one configurable feature of LED night clock:
-  12/24 hour mode.
+  `12/24 hour mode`_.
 
 
 Configuration
 -------------
 
-On Om 2008.12 install alsa-utils-aplay together with ffalarms and it
-should work out of the box.  But if you want to use other alarm file
-or player than read on.
+On `Om 2008.12`_ install ``alsa-utils-aplay`` together with
+``ffalarms`` and it should work out of the box.  But if you want to
+use other alarm file or player than read on.
 
-The configuration is done through a file ~/.ffalarms.  The reasonable
-default configuration is written for you automatically when you add an
-alarm and the configuration file does not exist (then it is easy to
-customize if you have it). It mostly looks like:
+The configuration is done through a file ``~/.ffalarms``.  The
+reasonable default configuration that just works is written for you
+automatically when you add an alarm and the configuration file does
+not exist (then it is easy to customize if you have it). It mostly
+looks like::
 
     [alarm]
     player=aplay %(file)s
@@ -131,21 +151,24 @@ customize if you have it). It mostly looks like:
     repeat=300
 
 Which will play a given file 300 times (ie. for about 3 minutes).  But
-if you have mplayer installed you can use its -loop option to obtain
-the same effect (and then omit repeat as it obviously defaults to 1)
+if you have mplayer installed you can use its ``-loop`` option to
+obtain the same effect (and then omit repeat as it obviously defaults
+to 1) ::
 
     [alarm]
     player=mplayer -really-quiet -loop 300 %(file)s
     file=/usr/share/ffalarms/alarm.wav
 
-But why would you use a wav file if you have mplayer installed?
+But why would you use a WAV file if you have MPlayer installed?
 
-Reference %(file)s in the player option will be expanded to a value of
-file option with leading ~ replaced with the home directory and proper
-shell quoting if needed.
+Reference ``%(file)s`` in the player option will be expanded to a
+value of file option with leading tilde (``~``) replaced with the home
+directory and proper shell quoting if needed.
+
+.. _12/24 hour mode:
 
 LED clock by default uses 24 hour format, you can change it to 12 hour
-format by adding the following to the configuration file
+format by adding the following to the configuration file ::
 
     [ledclock]
     24hr_format=no
@@ -154,41 +177,50 @@ format by adding the following to the configuration file
 Command line options
 --------------------
 
-usage: ffalarms [OPTIONS]
+::
 
-Options:
-  -e, --edje=FILE            use Edje interface from FILE
-      --at-spool=DIR         use DIR as the at spool directory instead of
-                             /var/spool/at
-  -c, --config=FILE          use config file other than ~/.ffalarms
-  -s, --set=HH:MM            set alarm at given time
-      --del=TIMESTAMP        delete alarm with a given timestamp
-      --kill                 kill running alarm
-  -l, --list                 list scheduled alarms
-  -h, --help                 display this help and exit
-      --version              display version and exit
+    usage: ffalarms [OPTIONS]
+
+    Options:
+      -e, --edje=FILE            use Edje interface from FILE
+          --at-spool=DIR         use DIR as the at spool directory instead of
+                                 /var/spool/at
+      -c, --config=FILE          use config file other than ~/.ffalarms
+      -s, --set=HH:MM            set alarm at given time
+          --del=TIMESTAMP        delete alarm with a given timestamp
+          --kill                 kill running alarm
+      -l, --list                 list scheduled alarms
+      -h, --help                 display this help and exit
+          --version              display version and exit
 
 
 Credits
 -------
 
-The list widget is a (slightly modified) python-edje example kinetic
-list [9] by Kenneth Rohde Christiansen (svn 38572) this includes
-kinenic_list.py, listitem.png, and a portion of 03-kinenic_list.edc
-embedded into ffalarms.edc.
+The list widget is a (slightly modified) `python-edje example kinetic
+list`__ by Kenneth Rohde Christiansen (svn 38572) this includes
+``kinenic_list.py``, ``listitem.png``, and a portion of
+``03-kinenic_list.edc`` embedded into ``ffalarms.edc``.
 
-Some images are generated from SVG icons from Tango Desktop Project [10]
+Some images are generated from SVG icons from `Tango Desktop Project`_
 (licenced under the Creative Commons Attribution Share-Alike license),
-this includes add.png, remove.png, go-last.png, and led-clock.png
-(generated from stock_weather-night-clear.svg).
+this includes ``add.png``, ``remove.png``, ``go-last.png``, and
+``led-clock.png`` (generated from ``stock_weather-night-clear.svg``).
 
 Some images are generated from SVG icons available in Debian package
-gnome-icon-theme (licenced under GNU GPL v2) which says they are
-available from [11], this includes go-last.png, gtk-close.png, and
+gnome-icon-theme_ (licenced under `GNU GPL v2`_) which says they are
+available from here__, this includes go-last.png, gtk-close.png, and
 ffalarms.svg (based on appointment-new.svg).
 
-Alarm file alarm.wav is taken from Trolltech's Qtopia Open Source
-edition version 4.3.2 which is licensed under GNU GPL v2.
+Alarm file ``alarm.wav`` is taken from `Trolltech's Qtopia`_ Open Source
+edition version 4.3.2 which is licensed under `GNU GPL v2`_.
+
+.. __: http://trac.enlightenment.org/e/browser/trunk/BINDINGS/python/python-edje/examples/evas-demo/03-kinetic_list
+.. _Tango Desktop Project: http://tango.freedesktop.org/
+.. _gnome-icon-theme: http://packages.debian.org/stable/gnome-icon-theme
+.. __: http://ftp.acc.umu.se/pub/GNOME/sources/gnome-icon-theme/
+.. _GNU GPL v2: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+.. _Trolltech's Qtopia: http://qtopia.net/modules/devices/
 
 
 Bugs
@@ -196,11 +228,15 @@ Bugs
 
 I once experienced keyboard popping up on top of LED clock without
 resizing it, thus covering the close button ("X"), if this ever
-happens press key q to close the LED clock.
+happens press key ``q`` to close the LED clock.
 
 
 TODO
 ----
+
+- add support for repeated alarms (may require to write alarm daemon
+  on top of FSO may be with, optional backward (2008.12) compatible
+  atd backend).
 
 - Should preserve list selection on list update.
 
@@ -211,15 +247,43 @@ TODO
 - May support "repeat=5m" for playing the alarm for five minutes
   instead of given number of times.
 
+- may add "killing the alarm by accelerators would be an excellent
+  option!"  (suggested by Vanous)
+
 
 Versions
 --------
+
+0.2.1 (2009-03-27)
+..................
+
+- fix to a Daylight Saving Time problem (thanks to Ken Young for
+  reporting this)
+
+- disables the screensaver on the phone avoiding it to sleep while the
+  alarm is ringing (thanks to Marco Trevisan for the patch)
+
+- analog clock face now shows AM/PM hours or minutes depending on the
+  context (thanks to Marco Trevisan for the patch; I reimplemented the
+  idea in Embryo)
+
+- now the puzzle is reordered after timeout instead of being hidden
+
+- display error message if unable to trigger atd daemon
+
+- add support for dimming the backlight in Linux 2.6.28 (as in SHR)
+
+- include ``alarm.wav`` from Qtopia (to work out of the box on SHR)
+
+- display error message if there is no atd spool directory instead of
+  failing to start GUI
 
 0.2 (2009-02-08)
 ................
 
 - restore original ALSA state after the alarm (instead of setting stereoout)
 - raise puzzle when alarm starts (unless in LED clock mode)
+  (thanks to Nathan for the suggestion)
 - LED clock: use bigger digits if hour < 20
 - LED clock: add configuration option to select 12 or 24 time format
 - adding alarm: hours become bigger when clicked for visual feedback
@@ -228,19 +292,3 @@ Versions
 ................
 
 - Initial release
-
-
-References
-----------
-
-[1] http://neon.projects.openmoko.org/, http://www.opkg.org/package_62.html
-[2] http://wiki.openmoko.org/wiki/Zhone
-[3] http://www.freesmartphone.org/index.php/Main_Page
-[4] http://projects.openmoko.org/projects/ledclock/, http://www.opkg.org/package_104.html
-[5] http://python.org/
-[6] http://enlightenment.org/p.php?p=about/efl&l=en
-[7] http://wiki.enlightenment.org/index.php/Edje
-[8] http://wiki.enlightenment.org/index.php/Embryo
-[9] http://trac.enlightenment.org/e/browser/trunk/BINDINGS/python/python-edje/examples/evas-demo/03-kinetic_list
-[10] http://tango.freedesktop.org/
-[11] http://ftp.acc.umu.se/pub/GNOME/sources/gnome-icon-theme/
