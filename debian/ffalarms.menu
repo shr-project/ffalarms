@@ -1,0 +1,3 @@
+?package(ffalarms):needs="X11" section="Applications/Office"\
+  title="ffalarms" command="/usr/bin/ffalarms"\
+  icon="/usr/share/pixmaps/ffalarms.png"

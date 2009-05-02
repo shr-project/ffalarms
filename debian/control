@@ -1,0 +1,16 @@
+Source: ffalarms
+Section: x11
+Priority: extra
+Maintainer: Lukasz Pankowski <lukpank@o2.pl>
+Build-Depends: debhelper (>= 7), python-support, libedje-bin
+Standards-Version: 3.8.1
+Homepage: http://ffalarms.projects.openmoko.org/
+
+Package: ffalarms
+Architecture: all
+Depends: ${python:Depends}, ${misc:Depends}, python-edje, python-ecore, atd-over-fso, alsa-utils, fso-config, ttf-dejavu-core
+Description: Finger friendly alarms
+ Ffalarms is a program to set multiple alarms a day using a finger
+ friendly user interface (hence the name). Three clicks to set an
+ alarm time. Progressive volume. Switch off though four buttons
+ puzzle. LED night clock included. Written in Python/EFL.

@@ -1,0 +1,49 @@
+This package was debianized by Łukasz Pankowski <lukpank@o2.pl> on
+Fri, 01 May 2009 18:00:09 +0200.
+
+It was downloaded from http://ffalarms.projects.openmoko.org/
+
+Upstream Author(s):
+
+    Łukasz Pankowski <lukpank@o2.pl>
+
+Copyright:
+
+    Copyright (C) 2009 Łukasz Pankowski <lukpank@o2.pl>
+
+License:
+
+    ffalarms is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Some of those are included in /usr/share/ffalarms/ffalarms.edj:
+
+    The list widget is a (slightly modified) `python-edje example
+    kinetic list`
+    (http://trac.enlightenment.org/e/browser/trunk/BINDINGS/python/python-edje/examples/evas-demo/03-kinetic_list)
+    by Kenneth Rohde Christiansen (svn 38572) this includes
+    ``kinenic_list.py``, ``listitem.png``, and a portion of
+    ``03-kinenic_list.edc`` embedded into ``ffalarms.edc``.
+
+    Alarm file ``/usr/share/ffalarms/alarm.wav`` is taken from
+    `Trolltech's Qtopia`_ Open Source edition version 4.3.2 which is
+    licensed under `GNU GPL v2`_.
+
+    Some images are generated from SVG icons from `Tango Desktop Project`_
+    (licenced under the Creative Commons Attribution Share-Alike license),
+    this includes ``add.png``, ``remove.png``, ``go-last.png``, and
+    ``led-clock.png`` (generated from ``stock_weather-night-clear.svg``).
+
+    Some images are generated from SVG icons available in Debian
+    package gnome-icon-theme_ (licenced under `GNU GPL v2`_) this
+    includes go-last.png, gtk-close.png, and ffalarms.svg (based on
+    appointment-new.svg).
+
+The Debian packaging is:
+
+    Copyright (C) 2009 Lukasz Pankowski <lukpank@o2.pl>
+
+and is licensed under the GPL version 3, 
+see `/usr/share/common-licenses/GPL-3'.

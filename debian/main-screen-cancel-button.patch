@@ -1,0 +1,31 @@
+diff -r f9783a9805bb data/ffalarms.edc
+--- a/data/ffalarms.edc	Sat May 02 09:39:24 2009 +0200
++++ b/data/ffalarms.edc	Sat May 02 09:40:38 2009 +0200
+@@ -474,6 +474,7 @@
+             ICON_BUTTON("show-clock-button", "images/led-clock.png",
+                         1.0 0.0, "delete-alarm-button",
+                         G 0, (ICON_H+G) ICON_H);
++            CANCEL_BUTTON
+ 
+             part {
+                 name: "list";
+@@ -500,6 +501,7 @@
+             ICON_DIM_PROG("new-alarm-button");
+             ICON_DIM_PROG("delete-alarm-button");
+             ICON_DIM_PROG("show-clock-button");
++            ICON_DIM_PROG("cancel-button");
+         }
+     }
+ 
+diff -r f9783a9805bb ffalarms/ffalarms.py
+--- a/ffalarms/ffalarms.py	Sat May 02 09:39:24 2009 +0200
++++ b/ffalarms/ffalarms.py	Sat May 02 09:40:38 2009 +0200
+@@ -473,6 +473,8 @@
+                                  self.delete_alarm_after_puzzle)
+         self.signal_callback_add("mouse,clicked,1", "show-clock-button",
+                                  self.show_clock)
++        self.signal_callback_add("mouse,clicked,1", "cancel-button",
++                                 lambda *a: ecore.main_loop_quit())
+         self.signal_callback_add("SIGUSR1", "", self.turn_off_puzzle)
+         self.list = KineticList(self.stack.canvas, file=filename, item_height=85,
+                                 with_thumbnails=False)
