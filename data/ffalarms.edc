@@ -466,7 +466,7 @@ collections {
         parts {
             BACKGROUND;
             TOOLBAR;
-            STATUS("list-header", "Sheduled alarms:");
+            STATUS("list-header", "Scheduled alarms:");
             ICON_BUTTON("new-alarm-button", "images/add.png",
                         0.0 0.0, "background", 0 0, ICON_H ICON_H);
             ICON_BUTTON("delete-alarm-button", "images/remove.png",
