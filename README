@@ -199,11 +199,6 @@ Command line options
 Credits
 -------
 
-The list widget is a (slightly modified) `python-edje example kinetic
-list`__ by Kenneth Rohde Christiansen (svn 38572) this includes
-``kinenic_list.py``, ``listitem.png``, and a portion of
-``03-kinenic_list.edc`` embedded into ``ffalarms.edc``.
-
 Some images are generated from SVG icons from `Tango Desktop Project`_
 (licenced under the Creative Commons Attribution Share-Alike license),
 this includes ``add.png``, ``remove.png``, ``go-last.png``, and
@@ -217,7 +212,6 @@ ffalarms.svg (based on appointment-new.svg).
 Alarm file ``alarm.wav`` is taken from `Trolltech's Qtopia`_ Open Source
 edition version 4.3.2 which is licensed under `GNU GPL v2`_.
 
-.. __: http://trac.enlightenment.org/e/browser/trunk/BINDINGS/python/python-edje/examples/evas-demo/03-kinetic_list
 .. _Tango Desktop Project: http://tango.freedesktop.org/
 .. _gnome-icon-theme: http://packages.debian.org/stable/gnome-icon-theme
 .. __: http://ftp.acc.umu.se/pub/GNOME/sources/gnome-icon-theme/

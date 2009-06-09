@@ -34,12 +34,6 @@
 #define PUZZLE_TIMEOUT 5
 #define PUZZLE_INTER_TIMEOUT 1
 
-styles {
-    style {
-        name: "message";
-        base: "font="FONT" font_size=20 align=center color=#000 wrap=word";
-    }
-}
 
 #define PROG(NAME, SIGNAL, SOURCE, REST)                                \
     program {                                                           \
@@ -450,7 +444,6 @@ styles {
 
 images {
     image: "images/circle.png" COMP;
-    image: "images/listitem.png" COMP;
     image: "images/add.png" COMP;
     image: "images/remove.png" COMP;
     image: "images/led-clock.png" COMP;
@@ -944,165 +937,6 @@ collections {
                     source: "";
                     script { set_h24(0); }
                 }
-            }
-        }
-    }
-
-    group {
-        name: "message-group";
-
-        parts {
-            part {
-                name: "bg-frame";
-                type: RECT;
-                mouse_events: 0;
-                description {
-                    state: "default" 0.0;
-                    color: 255 0 0 255;
-                    rel1 {
-                        relative: 0.0 0.4;
-                        offset: 0 0;
-                    }
-                    rel2 {
-                        relative: 1.0 0.6;
-                        offset: -1 -1;
-                    }
-                }
-            }
-            part {
-                name: "background";
-                type: RECT;
-                mouse_events: 0;
-                description {
-                    state: "default" 0.0;
-                    color: BG_RGB 255;
-                    rel1 {
-                        relative: 0.0 0.0;
-                        offset: 3 3;
-                        to: "bg-frame";
-                    }
-                    rel2 {
-                        relative: 1.0 1.0;
-                        offset: -3 -3;
-                        to: "bg-frame";
-                    }
-                }
-            }
-
-            CANCEL_BUTTON_YCENTER;
-
-            part {
-                name: "message";
-                type: TEXTBLOCK;
-
-                description {
-                    rel1 {
-                        relative: 0.0 0.47;
-                        offset: 5 5;
-                    }
-                    rel2 {
-                        relative: 0.0 0.59;
-                        offset: -5 -5;
-                        to_x: "cancel-button";
-                    }
-                    text {
-                        style: "message";
-                        text: "message";
-                    }
-                }
-            }
-            part {
-                name: "title";
-                type: TEXT;
-
-                description {
-                    color: 0 0 0 255;
-                    rel1 {
-                        relative: 0.0 0.4;
-                        offset: 5 5;
-                    }
-                    rel2 {
-                        relative: 0.0 0.47;
-                        offset: -5 -5;
-                        to_x: "cancel-button";
-                    }
-                    text {
-                        text: "";
-                        font: BOLD_FONT;
-                        size: 20;
-                        align: 0.5 0.5;
-                    }
-                }
-            }
-        }
-    }
-
-    group { /* from: 03-kinetic_list.edc */
-        name: "list_item";
-        parts {
-            part {
-                name: "item_background";
-                type: IMAGE;
-                description {
-                    state: "default" 0.0;
-                    rel1 {
-                        relative: 0.0 0.0;
-                        offset: 1 1;
-                    }
-                    rel2 {
-                        relative: 1.0 1.0;
-                        offset: -2 -2;
-                    }
-                    image {
-                        normal: "images/listitem.png";
-                        border: 5 5 5 5;
-                    }
-                }
-                description {
-                    state: "selected" 0.0;
-                    inherit: "default" 0.0;
-                    color: 153 190 203 128;
-                }
-            }
-            part {
-                name: "label";
-                type: TEXT;
-                description {
-                    state: "default" 0.0;
-                    rel1 {
-                        to: "item_background";
-                        relative: 0 0.5;
-                        offset: 30 0;
-                    }
-                    rel2 {
-                        to: "item_background";
-                        relative: 0 0.5;
-                    }
-                    align: 0 0.5;
-                    color: 0 0 0 255;
-                    color2: 225 225 225 128;
-                    text {
-                        font: FONT;
-                        size: 20;
-                        text: "Audio";
-                        min: 1 1;
-                    }
-                }
-            }
-        }
-
-        programs {
-            program {
-                source: "*";
-                signal: "select";
-                action: STATE_SET "selected" 0;
-                target: "item_background";
-            }
-            program {
-                source: "*";
-                signal: "unselect";
-                action: STATE_SET "default" 0;
-                target: "item_background";
             }
         }
     }
