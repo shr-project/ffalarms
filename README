@@ -182,6 +182,8 @@ Command line options
     usage: ffalarms [OPTIONS]
 
     Options:
+      -E, --engine=x11|x11-16    use given rendering engine (defaults to x11-16
+                                 if available)
       -e, --edje=FILE            use Edje interface from FILE
           --at-spool=DIR         use DIR as the at spool directory instead of
                                  /var/spool/at
@@ -253,6 +255,20 @@ TODO
 
 Versions
 --------
+
+0.2.2 (2009-05-22)
+..................
+
+- fix ffalarms not starting due to ecore.evas.engines_get raising
+  ValueError instead of returning True (incompatibility between
+  python-ecore and ecore; thanks to skamster for reporting)
+
+- add -E, --engine=x11|x11-16 option
+
+- check also for software_16_x11 (new name) apart from software_x11_16
+  (old name)
+
+- fix typo in "Scheduled alarms:" on main screen (thanks to Marcel)
 
 0.2.1 (2009-03-27)
 ..................

@@ -18,6 +18,8 @@
 usage: %(prog)s [OPTIONS]
 
 Options:
+  -E, --engine=x11|x11-16    use given rendering engine (defaults to x11-16
+                             if available)
   -e, --edje=FILE            use Edje interface from FILE
       --at-spool=DIR         use DIR as the at spool directory instead of
                              /var/spool/at
@@ -31,7 +33,7 @@ Options:
       --version              display version and exit
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 import sys
 import os
@@ -584,18 +586,26 @@ class AlarmList(edje.Edje):
 
 def main():
     global ATSPOOL, EDJE_FILE, CONFIG_FILE
+    engine = None
     prog = os.path.basename(sys.argv[0])
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], 'e:c:s:lh', ['edje=', 'at-spool=', 'config=',
-                                       'list', 'set=', 'del=', 'kill',
-                                       'puzzle', 'version', 'help'])
+            sys.argv[1:], 'E:e:c:s:lh',
+            ['engine=', 'edje=', 'at-spool=', 'config=', 'list',
+             'set=', 'del=', 'kill', 'puzzle', 'version', 'help'])
     except getopt.GetoptError, e:
         sys.exit('%s: %s' % (prog, e))
     actions = []
     show_list = puzzle = False
     for o, a in opts:
-        if o in ['-e', '--edje']:
+        if o in ['-E', '--engine']:
+            if a == 'x11':
+                engine = ecore.evas.SoftwareX11
+            elif a == 'x11-16':
+                engine = ecore.evas.SoftwareX11_16
+            else:
+                sys.exit('%s: engine should be x11 or x11-16')
+        elif o in ['-e', '--edje']:
             EDJE_FILE = a
         elif o == '--at-spool':
             ATSPOOL = a
@@ -653,10 +663,16 @@ def main():
     if actions or show_list:
         sys.exit()
 
-    if ecore.evas.engine_type_supported_get('software_x11_16'):
-        engine = ecore.evas.SoftwareX11_16
-    else:
-        engine = ecore.evas.SoftwareX11
+    if engine is None:
+        if hasattr(ecore.evas, 'engines_get'):
+            engines = ecore.evas.engines_get()
+            if 'software_x11_16' in engines or 'software_16_x11' in engines:
+                engine = ecore.evas.SoftwareX11_16
+        elif (ecore.evas.engine_type_supported_get('software_16_x11') or
+              ecore.evas.engine_type_supported_get('software_x11_16')):
+            engine = ecore.evas.SoftwareX11_16
+        if engine is None:
+            engine = ecore.evas.SoftwareX11
 
     ee = engine(w=480, h=640)
     ee.name_class = ('FFAlarms', 'FFAlarms')

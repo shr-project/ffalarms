@@ -20,7 +20,7 @@ class build(_build):
 
 def main():
     setup(name='ffalarms',
-          version='0.2.1',
+          version='0.2.2',
           description='Finger friendly alarms',
           author='Łukasz Pankowski',
           author_email='lukpank@o2.pl',
