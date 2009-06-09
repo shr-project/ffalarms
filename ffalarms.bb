@@ -5,21 +5,23 @@ AUTHOR = "Łukasz Pankowski <lukpank@o2.pl>"
 MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
-DEPENDS = "edje-native python-native"
-PV = "0.2.2"
+DEPENDS = "vala-native libeflvala elementary"
+PV = "0.0"
 PR = "r0"
-
-# Pure Python plus Edje interface
-PACKAGE_ARCH = "all"
 
 SRC_URI = "file://ffalarms-${PV}.tar.gz"
 
-inherit distutils
+FILES_${PN} += "${datadir}/${PN} ${datadir}/applications ${datadir}/pixmaps"
 
-FILES_${PN} += "${datadir}/${PN} ${datadir}/applications/ffalarms.desktop ${datadir}/pixmaps"
+RDEPENDS = "elementary glib-2.0 atd alsa-utils-amixer alsa-utils-alsactl \
+	    openmoko-alsa-scenarios ttf-dejavu-sans"
 
-RDEPENDS += "python-re python-datetime python-edje python-ecore \
-             atd alsa-utils-amixer alsa-utils-alsactl openmoko-alsa-scenarios \
-             ttf-dejavu-sans"
+RSUGGESTS = "mplayer alsa-utils-aplay"
 
-RSUGGESTS += "mplayer alsa-utils-aplay"
+do_compile() {
+	oe_runmake
+}
+
+do_install() {
+	oe_runmake install DESTDIR=${D}
+}
