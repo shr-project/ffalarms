@@ -19,7 +19,7 @@ RDEPENDS = "elementary glib-2.0 atd alsa-utils-amixer alsa-utils-alsactl \
 RSUGGESTS = "mplayer alsa-utils-aplay"
 
 do_compile() {
-	oe_runmake
+	oe_runmake VAPIDIR=${STAGING_DATADIR}/vala/vapi
 }
 
 do_install() {

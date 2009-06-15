@@ -18,7 +18,6 @@ images/ffalarms.png \
 images/remove.png \
 images/ffalarms.svg \
 images/led-clock.png \
-images/listitem.png \
 images/go-last.png
 
 PREFIX=/usr
@@ -29,7 +28,7 @@ PKG_LDFLAGS = `pkg-config --libs elementary gobject-2.0`
 VAPIDIR = $(HOME)/src/libeflvala/vapi
 VALAFLAGS = --vapidir=$(VAPIDIR)
 
-SHR=$(HOME)/shr/shr-testing
+SHR=${HOME}/shr/shr-unstable
 
 NATIVE_BIN=$(SHR)/tmp/staging/i686-linux/usr/bin
 CROSS_PKG_CONFIG_PATH=$(SHR)/tmp/staging/armv4t-angstrom-linux-gnueabi/usr/lib/pkgconfig
@@ -92,7 +91,7 @@ PR=r0
 #PR=r0+hg
 IPK=$(TOPDIR)/tmp/deploy/glibc/ipk/armv4t/$(PN)_$(PV)-$(PR)_armv4t.ipk
 
-TOPDIR=~/shr/shr-testing
+TOPDIR=~/shr/shr-unstable
 RECIPE_DIR=~/shr/local/recipes
 
 
@@ -101,7 +100,7 @@ ipk: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
 	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	( cd $(TOPDIR) && . setup-env && bitbake -c install ffalarms )
+	( cd ${TOPDIR} && . setup-env && bitbake -c install ffalarms-${PV} )
 
 ipk-fast: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
