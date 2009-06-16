@@ -25,6 +25,7 @@ PKG_CFLAGS = `pkg-config --cflags elementary gobject-2.0`
 PKG_LDFLAGS = `pkg-config --libs elementary gobject-2.0`
 
 # XXX this is local conf
+VALAC=valac
 VAPIDIR = $(HOME)/src/libeflvala/vapi
 VALAFLAGS = --vapidir=$(VAPIDIR)
 
@@ -48,7 +49,7 @@ ffalarms.o: ffalarms.c
 	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi
-	valac ${VALAFLAGS} --pkg=elm --pkg=edje --pkg posix -C $^
+	${VALAC} ${VALAFLAGS} --pkg=elm --pkg=edje --pkg posix -C $^
 	@touch $@  # seems to be sometimes needed
 
 data/ffalarms.edj: data/ffalarms.edc
@@ -74,7 +75,7 @@ install: all
 	install -m 644 images/ffalarms.png ${DESTDIR}${PREFIX}/share/pixmaps
 
 clean:
-	rm -f ffalarms armv4t/ffalarms
+	rm -f *.o ffalarms armv4t/ffalarms
 
 
 armv4t/ffalarms: ffalarms.c
@@ -126,6 +127,8 @@ full-do-%:
 do-%:
 	( cd $(TOPDIR) && . setup-env && bitbake -c $* -b $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb )
 
+rebuild: do-clean ipk-fast
+reinstall: do-clean ipk-fast ipk-inst
 
 EFL=~/local/src/e
 tags:

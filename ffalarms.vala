@@ -79,8 +79,9 @@ void set_alarm(time_t timestamp, string alarm_cmd, int repeat,
     var filename = Path.build_filename(
 	at_spool,"%ld.ffalarms.%ld".printf(timestamp, getpid()));
     FileUtils.get_contents(ALARM_SH, out alarm_sh);
-    FileUtils.set_contents(filename, alarm_sh.printf(Shell.quote(ALSASTATE),
-						     repeat, alarm_cmd));
+    FileUtils.set_contents(
+	filename, alarm_sh.printf(Shell.quote(ALSASTATE),
+				  repeat, Shell.quote(alarm_cmd)));
     FileUtils.chmod(filename, 0755);
     int fd = open(trig, O_WRONLY | O_NONBLOCK);
     bool atd_error = (fd == -1 || fstat(fd, out st) != 0 ||
@@ -587,6 +588,76 @@ class Config
 }
 
 
+class Alarm {
+    const string[] AMIXER_CMD = {"amixer", "--stdin", "--quiet", null};
+    const string SET_PCM_FMT = "sset PCM %g%%\n";
+
+    string[] play_argv;
+    int cnt;
+    double volume = 60;
+    FileStream mixer;
+    MainLoop ml;
+    static pid_t player_pid = 0;
+
+    public Alarm(string play_cmd, int cnt) {
+	this.cnt = cnt;
+	Shell.parse_argv(play_cmd, out play_argv);
+    }
+
+    public void run()
+    {
+	int stdin;
+
+	Process.spawn_async_with_pipes(
+	    null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
+	    null, null, out stdin, null, null);
+	mixer = FileStream.fdopen(stdin, "w");
+	mixer.printf(SET_PCM_FMT, volume);
+	mixer.flush();
+	Timeout.add(1000, inc_volume);
+	ml = new MainLoop(null, false);
+	signal(SIGTERM, sigterm);
+	alarm_loop();
+	ml.run();
+    }
+
+    static void sigterm(int signal)
+    {
+	if (player_pid != 0)
+	    kill(player_pid, SIGTERM);
+	Posix.exit(1);
+    }
+
+    bool inc_volume()
+    {
+	volume += 0.38;
+	mixer.printf(SET_PCM_FMT, volume);
+	mixer.flush();
+	return volume < 100;
+    }
+
+    void alarm_loop(Pid p = null, int status = 0)
+    {
+	Pid pid;
+
+	if (cnt-- == 0) {
+	    ml.quit();
+	    return;
+	}
+	if ((void *) p != null)
+	    usleep(300000);
+	signal(SIGTERM, SIG_IGN);
+	Process.spawn_async(
+	    null, play_argv, null,
+	    SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD,
+	    null, out pid);
+	signal(SIGTERM, sigterm);
+	player_pid = (pid_t) pid;
+	ChildWatch.add(pid, alarm_loop);
+    }
+}
+
+
 class Main {
     static string edje_file = EDJE_FILE;
     static string at_spool = "/var/spool/at";
@@ -595,6 +666,7 @@ class Main {
     static bool list = false;
     static bool kill = false;
     static bool puzzle = false;
+    static string play_cmd = false;
 
     [CCode (array_length = false, array_null_terminated = true)]
     static string[] alarms = null;
@@ -618,6 +690,8 @@ class Main {
 	  "list scheduled alarms", null },
 	{ "puzzle", 0, 0, OptionArg.NONE, ref puzzle,
 	  "run turn off puzzle", null },
+	{ "play-alarm", 0, 0, OptionArg.STRING, ref play_cmd,
+	  "play alarm", null },
 	{ "version", 0, 0, OptionArg.NONE, ref version,
 	  "display version and exit", null },
 	{null}
@@ -636,6 +710,12 @@ class Main {
 	if (version) {
 	    stdout.printf("ffalarms-%s\n", VERSION);
 	    Posix.exit(0);
+	}
+	if (play_cmd != null) {
+	    int cnt = (args[1] != null) ? args[1].to_int() : 1;
+	    var a = new Alarm(play_cmd, (cnt > 0) ? cnt : 1);
+	    a.run();
+	    return;
 	}
 	if (alarms != null) {
 	    try {

@@ -3,8 +3,8 @@
 
 ALSASTATE=%s
 REPEAT=%d
+ALARM_CMD=%s
 
-AMIXER_PID=
 ORIG_ALSASTATE=`mktemp /tmp/$0.XXXXXX`
 DISPLAY=:0
 
@@ -21,7 +21,7 @@ if [ -z "$SS_TIMEOUT" ]; then
 fi
 
 quit() {
-        kill "$AMIXER_PID" $!
+        kill $!
         wait
         alsactl -f "$ORIG_ALSASTATE" restore
         if [ "$SS_TIMEOUT" -gt 0 ]; then
@@ -42,16 +42,8 @@ xset -display $DISPLAY s off
 xset -display $DISPLAY s reset
 
 alsactl -f "$ALSASTATE" restore
-amixer --quiet sset PCM,0 150
-for x in `seq 150 255`; do echo sset PCM,0 $x || break; sleep 1; done \
-    | amixer --stdin --quiet &
-AMIXER_PID=$!
 
-i=0
-while [ $i -lt $REPEAT ]; do
-    %s &
-    wait $!
-    i=$((i+1));
-done
+ffalarms --play-alarm "$ALARM_CMD" $REPEAT &
+wait $!
 
 quit
