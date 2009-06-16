@@ -608,6 +608,8 @@ class Alarm {
     {
 	int stdin;
 
+	ml = new MainLoop(null, false);
+	request_resources();
 	Process.spawn_async_with_pipes(
 	    null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
 	    null, null, out stdin, null, null);
@@ -615,10 +617,28 @@ class Alarm {
 	mixer.printf(SET_PCM_FMT, volume);
 	mixer.flush();
 	Timeout.add(1000, inc_volume);
-	ml = new MainLoop(null, false);
 	signal(SIGTERM, sigterm);
 	alarm_loop();
 	ml.run();
+    }
+
+    void request_resources()
+    {
+	try {
+	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	    dynamic DBus.Object usage = bus.get_object(
+		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage",
+		"org.freesmartphone.Usage");
+	    usage.RequestResource("CPU", async_result);
+	    usage.RequestResource("Display", async_result);
+	} catch (DBus.Error e) {
+		debug("Could not connect to dbus or other dbus error");
+	}
+    }
+
+    void async_result(GLib.Error e) {
+	if (e != null)
+	    stdout.printf("end call error: %s\n", e.message);
     }
 
     static void sigterm(int signal)

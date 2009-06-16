@@ -21,8 +21,8 @@ images/led-clock.png \
 images/go-last.png
 
 PREFIX=/usr
-PKG_CFLAGS = `pkg-config --cflags elementary gobject-2.0`
-PKG_LDFLAGS = `pkg-config --libs elementary gobject-2.0`
+PKG_CFLAGS = `pkg-config --cflags elementary gobject-2.0 dbus-glib-1`
+PKG_LDFLAGS = `pkg-config --libs elementary gobject-2.0 dbus-glib-1`
 
 # XXX this is local conf
 VALAC=valac
@@ -34,8 +34,8 @@ SHR=${HOME}/shr/shr-unstable
 NATIVE_BIN=$(SHR)/tmp/staging/i686-linux/usr/bin
 CROSS_PKG_CONFIG_PATH=$(SHR)/tmp/staging/armv4t-angstrom-linux-gnueabi/usr/lib/pkgconfig
 CROSS_CC=$(SHR)/tmp/cross/armv4t/bin/arm-angstrom-linux-gnueabi-gcc
-CROSS_CFLAGS = `$(NATIVE_BIN)/pkg-config --cflags elementary gobject-2.0`
-CROSS_LDFLAGS = `PKG_CONFIG_PATH=$(CROSS_PKG_CONFIG_PATH) pkg-config --libs elementary gobject-2.0`
+CROSS_CFLAGS = `${NATIVE_BIN}/pkg-config --cflags elementary gobject-2.0 dbus-glib-1`
+CROSS_LDFLAGS = `PKG_CONFIG_PATH=${CROSS_PKG_CONFIG_PATH} pkg-config --libs elementary gobject-2.0 dbus-glib-1`
 #
 NEO=192.168.0.202
 
@@ -49,7 +49,7 @@ ffalarms.o: ffalarms.c
 	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi
-	${VALAC} ${VALAFLAGS} --pkg=elm --pkg=edje --pkg posix -C $^
+	${VALAC} ${VALAFLAGS} --pkg=elm --pkg=edje --pkg=dbus-glib-1 --pkg posix -C $^
 	@touch $@  # seems to be sometimes needed
 
 data/ffalarms.edj: data/ffalarms.edc
@@ -101,7 +101,7 @@ ipk: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
 	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	( cd ${TOPDIR} && . setup-env && bitbake -c install ffalarms-${PV} )
+	( cd ${TOPDIR} && . setup-env && bitbake ffalarms-${PV} )
 
 ipk-fast: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
