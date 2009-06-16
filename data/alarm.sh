@@ -34,15 +34,12 @@ trap quit TERM
 
 mv "$0" "x$0.$$"
 
-PIDS=`ps -C ffalarms --no-heading --format "pid"` && \
-    for PID in $PIDS; do kill -USR1 $PID && break; done || \
-    { DISPLAY=$DISPLAY ffalarms --puzzle & }
-
 xset -display $DISPLAY s off
 xset -display $DISPLAY s reset
 
 alsactl -f "$ALSASTATE" restore
 
+DISPLAY=$DISPLAY ffalarms --puzzle &
 ffalarms --play-alarm "$ALARM_CMD" $REPEAT &
 wait $!
 
