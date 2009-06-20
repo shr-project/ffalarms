@@ -312,6 +312,7 @@ class Clock
 {
     Win win;
     Layout lt;
+    int brightness = -1;
 
     public void show(Win parent, string edje_file)
     {
@@ -333,11 +334,31 @@ class Clock
 	win.resize(480, 640);
 	win.show();
 	win.fullscreen_set(true);
+	set_brightness(33);
     }
 
     public void close()
     {
+	set_brightness(-1);
 	win = null;
+    }
+
+    void set_brightness(int value)
+    {
+	try {
+ 	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	    dynamic DBus.Object o = bus.get_object(
+		"org.freesmartphone.odeviced", "/org/freesmartphone/Device/Display/0",
+		"org.freesmartphone.Device.Display");
+	    if (brightness == -1)
+		brightness = o.GetBrightness();
+	    o.SetBrightness((value != -1) ? value : brightness);
+	    if (value == -1)
+		brightness = -1;
+	} catch (DBus.Error e) {
+		debug("Could not connect to dbus or other dbus error: %s",
+		      e.message);
+	}
     }
 }
 
@@ -581,7 +602,6 @@ class Config
 	} catch (KeyFileError e) {
 	    throw new MyError.CONFIG(e.message);
 	} catch (FileError e) {
-	    debug(filename);
 	    throw new MyError.CONFIG("Configuration file error: %s".printf(e.message));
 	}
     }
@@ -638,7 +658,7 @@ class Alarm {
 
     void async_result(GLib.Error e) {
 	if (e != null)
-	    stdout.printf("end call error: %s\n", e.message);
+	    stderr.printf("end call error: %s\n", e.message);
     }
 
     static void sigterm(int signal)
