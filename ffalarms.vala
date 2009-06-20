@@ -436,14 +436,14 @@ class Message
 	    tt.label_set("<b>%s</b>".printf(title));
 	    tt.show();
 	    bx.pack_end(tt);
-	    bx.pack_end(frame("pad_large"));
+	    bx.pack_end(frame("pad_medium"));
 	}
 	lb = new Label(w);
 	lb.label_set(msg);
 	lb.size_hint_weight_set(1.0, 1.0);
 	lb.show();
 	bx.pack_end(lb);
-	bx.pack_end(frame("pad_large"));
+	bx.pack_end(frame("pad_medium"));
 	bt = new Button(w);
 	bt.label_set("Ok");
 	bt.size_hint_weight_set(-1.0, -1.0);
@@ -823,6 +823,7 @@ HH:MM or be the word now");
 	if (list || kill || alarms != null || deletes != null)
 	    Posix.exit(0);
 
+	Environment.set_variable("ELM_SCALE", "1.5", false); // dirty hack
 	Elm.init(args);
 	var mw = new MainWin(edje_file, at_spool, config_file);
 	if (! puzzle) {
