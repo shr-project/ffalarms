@@ -145,7 +145,7 @@ display proper message) then the default configuration is used which
 is equivalent to ::
 
     [alarm]
-    player=aplay %(file)s
+    player=aplay -q %(file)s
     file=/usr/share/ffalarms/alarm.wav
     repeat=500
 

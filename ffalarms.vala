@@ -158,7 +158,7 @@ weak string? nth_token(char[] buf, int nth)
 
 bool kill_running_alarms(string at_spool)
 {
-    var alarm_cmd = new Regex("^/bin/sh ([0-9]+[.]ffalarms[.][0-9]+)");
+    Regex alarm_cmd;
     char[] buf = new char[100];
     bool result = false;
     MatchInfo m;
@@ -168,6 +168,11 @@ bool kill_running_alarms(string at_spool)
     if (f == null) {
 	error("could not exec ps");
 	return false;
+    }
+    try {
+	alarm_cmd = new Regex("^/bin/sh ([0-9]+[.]ffalarms[.][0-9]+)");
+    } catch (RegexError e) {
+	assert_not_reached();
     }
     while (getline(ref buf, f) != -1) {
 	if (alarm_cmd.match(nth_token(buf, 7), 0, out m)) {
@@ -415,8 +420,11 @@ class Alarms
 	weak ListItem item = null;
 	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
 	while (iter.next(ref item))
-	    // XXX handle MyError
-	    delete_alarm(items.lookup(item), at_spool);
+	    try {
+		delete_alarm(items.lookup(item), at_spool);
+	    } catch (MyError e) {
+		GLib.message("delete_alarm: %s", e.message);
+	    }
 	// XXX would be nice to work from here:
 	// update();
     }
@@ -633,7 +641,7 @@ class Config
 
     public void use_defaults()
     {
-	player = "aplay %(file)s";
+	player = "aplay -q %(file)s";
 	alarm_file = "/usr/share/ffalarms/alarm.wav";
 	repeat = 500;
 	time_24hr_format = true;
@@ -700,13 +708,18 @@ class Alarm {
 
 	ml = new MainLoop(null, false);
 	request_resources();
-	Process.spawn_async_with_pipes(
-	    null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
-	    null, null, out stdin, null, null);
-	mixer = FileStream.fdopen(stdin, "w");
-	mixer.printf(SET_PCM_FMT, volume);
-	mixer.flush();
-	Timeout.add(1000, inc_volume);
+	try {
+	    Process.spawn_async_with_pipes(
+		null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
+		null, null, out stdin, null, null);
+	    mixer = FileStream.fdopen(stdin, "w");
+	    mixer.printf(SET_PCM_FMT, volume);
+	    mixer.flush();
+	    Timeout.add(1000, inc_volume);
+	} catch (SpawnError e) {
+	    // we continue with default volume
+	    GLib.message("Alarm.run: %s", e.message);
+	}
 	signal(SIGTERM, sigterm);
 	alarm_loop();
 	ml.run();
@@ -746,7 +759,7 @@ class Alarm {
 	return volume < 100;
     }
 
-    void alarm_loop(Pid p = null, int status = 0)
+    void alarm_loop(Pid p = 0, int status = 0)
     {
 	Pid pid;
 
@@ -754,15 +767,19 @@ class Alarm {
 	    ml.quit();
 	    return;
 	}
-	if ((void *) p != null)
+	if (p != (Pid) 0)
 	    usleep(300000);
 	signal(SIGTERM, SIG_IGN);
-	Process.spawn_async(
-	    null, play_argv, null,
-	    SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD,
-	    null, out pid);
-	signal(SIGTERM, sigterm);
+	try {
+	    Process.spawn_async(
+		null, play_argv, null,
+		SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD,
+		null, out pid);
+	} catch (SpawnError e) {
+	    die(e.message);
+	}
 	player_pid = (pid_t) pid;
+	signal(SIGTERM, sigterm);
 	ChildWatch.add(pid, alarm_loop);
     }
 }
