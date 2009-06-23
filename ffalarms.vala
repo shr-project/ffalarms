@@ -71,7 +71,7 @@ time_t next_hm(int hour, int minute)
 
 
 void set_alarm(time_t timestamp, string alarm_cmd, int repeat,
-	       string at_spool) throws MyError, FileError, SpawnError
+	       string at_spool) throws MyError, FileError
 {
     string alarm_sh, player = lstrip(alarm_cmd).split(" ", 2)[0];
     Posix.Stat st;
@@ -561,8 +561,6 @@ class MainWin
 	    msg = e.message;
 	} catch (FileError e) {
 	    msg = e.message;
-	} catch (SpawnError e) {
-	    msg = e.message;
 	}
 	if (msg == null)
 	    update_alarms();
@@ -868,11 +866,7 @@ HH:MM or be the word now");
 		}
 	    } catch (MyError e) {
 		die(e.message);
-	    } catch (KeyFileError e) {
-		die(e.message);
 	    } catch (FileError e) {
-		die(e.message);
-	    } catch (SpawnError e) {
 		die(e.message);
 	    }
 	}
