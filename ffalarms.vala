@@ -356,8 +356,7 @@ class Clock
 	    if (value == -1)
 		brightness = -1;
 	} catch (DBus.Error e) {
-		debug("Could not connect to dbus or other dbus error: %s",
-		      e.message);
+		debug("D-Bus error: %s", e.message);
 	}
     }
 }
@@ -413,12 +412,13 @@ class Alarms
 class Message
 {
     Win w;
-    Label lb;
     Label tt;
     Box bx;
+    Box hbx;
     Button bt;
+    Anchorblock ab;
     int fr_num = 0;
-    Frame[] fr = new Frame[4];
+    Frame[] fr = new Frame[6];
 
     unowned Frame frame(string style)
     {
@@ -438,15 +438,22 @@ class Message
 	    bx.pack_end(tt);
 	    bx.pack_end(frame("pad_medium"));
 	}
-	lb = new Label(w);
-	lb.label_set(msg);
-	lb.size_hint_weight_set(1.0, 1.0);
-	lb.show();
-	bx.pack_end(lb);
+	hbx = new Box(w);
+	hbx.horizontal_set(true);
+	hbx.size_hint_align_set(-1.0, 0.5); // fill horizontally
+ 	hbx.pack_end(frame("pad_small"));
+	ab = new Anchorblock(w);
+	ab.text_set(msg.replace("<", "&lt;"));
+	ab.size_hint_align_set(-1.0, 0.5); // fill horizontally
+	ab.size_hint_weight_set(1.0, 1.0); // expand
+	ab.show();
+ 	hbx.pack_end(ab);
+ 	hbx.pack_end(frame("pad_small"));
+	hbx.show();
+	bx.pack_end(hbx);
 	bx.pack_end(frame("pad_medium"));
 	bt = new Button(w);
 	bt.label_set("Ok");
-	bt.size_hint_weight_set(-1.0, -1.0);
 	bt.smart_callback_add("clicked", () => { this.w = null; });
 	bx.pack_end(bt);
 	bx.pack_end(frame("pad_small"));
