@@ -128,8 +128,8 @@ Limitations
 - Currently the list of alarms is not refreshed if the alarms have
   been altered by another instance of ffalarms or the alarm finished.
 
-- There is currently only one configurable feature of LED night clock:
-  `12/24 hour mode`_.
+- Configuration of LED night clock is currently limited to `12/24 hour
+  mode and brightness`_.
 
 
 Configuration
@@ -139,25 +139,28 @@ On `Om 2008.12`_ install ``alsa-utils-aplay`` together with
 ``ffalarms`` and it should work out of the box.  But if you want to
 use other alarm file or player than read on.
 
-The configuration is done through a file ``~/.ffalarms``.  The
-reasonable default configuration that just works is written for you
-automatically when you add an alarm and the configuration file does
-not exist (then it is easy to customize if you have it). It mostly
-looks like::
+The configuration is done through a file ``~/.ffalarmsrc``. If
+configuration file does not exist or contains errors (ffalarms will
+display proper message) then the default configuration is used which
+is equivalent to ::
 
     [alarm]
     player=aplay %(file)s
     file=/usr/share/ffalarms/alarm.wav
-    repeat=300
+    repeat=500
 
-Which will play a given file 300 times (ie. for about 3 minutes).  But
+    [ledclock]
+    24hr_format=true
+    brightness=33
+
+Which will play a given file 500 times (ie. for about 5 minutes).  But
 if you have mplayer installed you can use its ``-loop`` option to
 obtain the same effect (and then omit repeat as it obviously defaults
 to 1) ::
 
     [alarm]
-    player=mplayer -really-quiet -loop 300 %(file)s
-    file=/usr/share/ffalarms/alarm.wav
+    player=mplayer -really-quiet -loop 500 %(file)s
+    file=~/song.foo
 
 But why would you use a WAV file if you have MPlayer installed?
 
@@ -165,13 +168,16 @@ Reference ``%(file)s`` in the player option will be expanded to a
 value of file option with leading tilde (``~``) replaced with the home
 directory and proper shell quoting if needed.
 
-.. _12/24 hour mode:
+.. _12/24 hour mode and brightness:
 
 LED clock by default uses 24 hour format, you can change it to 12 hour
-format by adding the following to the configuration file ::
+format by setting ``24hr_format`` to ``false``, you can also change
+brightness of the LED clock (which 33 by default, 100 is maximum), use
+special value of -1 to not change the brightness, for example ::
 
     [ledclock]
-    24hr_format=no
+    24hr_format=false
+    brightness=-1
 
 
 Command line options
@@ -179,21 +185,23 @@ Command line options
 
 ::
 
-    usage: ffalarms [OPTIONS]
+    Usage:
+      ffalarms [OPTION...]  - finger friendly alarms
 
-    Options:
-      -E, --engine=x11|x11-16    use given rendering engine (defaults to x11-16
-                                 if available)
-      -e, --edje=FILE            use Edje interface from FILE
-          --at-spool=DIR         use DIR as the at spool directory instead of
-                                 /var/spool/at
-      -c, --config=FILE          use config file other than ~/.ffalarms
-      -s, --set=HH:MM            set alarm at given time
-          --del=TIMESTAMP        delete alarm with a given timestamp
-          --kill                 kill running alarm
-      -l, --list                 list scheduled alarms
-      -h, --help                 display this help and exit
-          --version              display version and exit
+    Help Options:
+      -?, --help              Show help options
+
+    Application Options:
+      -e, --edje=FILE         use Edje interface from FILE
+      --at-spool=DIR          use DIR as the at spool directory instead of
+      -c, --config=FILE       use config file other than ~/.ffalarmsrc
+      -s, --set=HH:MM|now     set alarm at given time
+      --del=TIMESTAMP         delete alarm with a given timestamp
+      --kill                  kill running alarm
+      -l, --list              list scheduled alarms
+      --puzzle                run turn off puzzle
+      --play-alarm            play alarm
+      --version               display version and exit
 
 
 Credits

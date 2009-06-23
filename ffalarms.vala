@@ -47,6 +47,15 @@ string lstrip(string s)
 }
 
 
+string expand_home(string s)
+{
+    if (new Regex("^~/").match(s))
+	return Path.build_filename(Environment.get_home_dir(), s.substring(2));
+    else
+	return s;
+}
+
+
 time_t next_hm(int hour, int minute)
 {
     var now = time_t();
@@ -313,6 +322,12 @@ class Clock
     Win win;
     Layout lt;
     int brightness = -1;
+    weak Config cfg;
+
+    public Clock(Config cfg)
+    {
+	this.cfg = cfg;
+    }
 
     public void show(Win parent, string edje_file)
     {
@@ -329,12 +344,14 @@ class Clock
 
 	weak Edje.Object edje = (Edje.Object) lt.edje_get();
 	edje.signal_callback_add("mouse,clicked,1", "cancel-button", this.close);
+	edje.signal_emit((cfg.time_24hr_format) ?
+			 "24hr-format" : "12hr-format", "");
 	edje.signal_emit("start", "");
 
 	win.resize(480, 640);
 	win.show();
 	win.fullscreen_set(true);
-	set_brightness(33);
+	set_brightness(cfg.brightness);
     }
 
     public void close()
@@ -345,6 +362,8 @@ class Clock
 
     void set_brightness(int value)
     {
+	if (value == -1 && brightness == -1)
+	    return;
 	try {
  	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
 	    dynamic DBus.Object o = bus.get_object(
@@ -443,7 +462,7 @@ class Message
 	hbx.size_hint_align_set(-1.0, 0.5); // fill horizontally
  	hbx.pack_end(frame("pad_small"));
 	ab = new Anchorblock(w);
-	ab.text_set(msg.replace("<", "&lt;"));
+	ab.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	ab.size_hint_align_set(-1.0, 0.5); // fill horizontally
 	ab.size_hint_weight_set(1.0, 1.0); // expand
 	ab.show();
@@ -474,6 +493,7 @@ class MainWin
     Puzzle puz;
     Alarms alarms;
     Message msg;
+    Config cfg;
     string edje_file;
     string at_spool;
     string config_file;
@@ -508,19 +528,27 @@ class MainWin
 	    "mouse,clicked,1", "delete-alarm-button", start_delete_puzzle);
 	edje.signal_callback_add(
 	    "mouse,clicked,1", "show-clock-button",
-	    () => { (clock = new Clock()).show(win, edje_file); });
+	    () => { (clock = new Clock(cfg)).show(win, edje_file); });
 
 	win.resize(480, 640);
 	win.show();
+
+	cfg = new Config();
+	try {
+	    cfg.load_from_file(config_file);
+	} catch (MyError.CONFIG e) {
+	    message("%s\nDefault configuration will be used."
+		    .printf(e.message), "Error reading config file");
+	    cfg.use_defaults();
+	}
     }
 
     void set_alarm_(int hour, int minute)
     {
 	string msg = null;
 	try {
-	    // XXX should reread config file only when changed
-	    var cfg = new Config(config_file);
-	    set_alarm(next_hm(hour, minute), cfg.play_cmd, cfg.repeat, at_spool);
+	    set_alarm(next_hm(hour, minute), cfg.alarm_cmd(), cfg.repeat,
+		      at_spool);
 	} catch (MyError e) {
 	    msg = e.message;
 	} catch (FileError e) {
@@ -591,27 +619,62 @@ class Config
 {
     KeyFile ini;
     public const string DEFAULT_CONFIG = "~/.ffalarmsrc";
-    public string play_cmd = "aplay /usr/share/ffalarms/alarm.wav";
-    public int repeat = 1;
+    public const int BRIGHTNESS = 33;
+    string player;
+    string alarm_file;
+    public int repeat;
+    public int brightness;
+    public bool time_24hr_format;
 
-    public Config(string? filename) throws MyError
+    public Config()
+    {
+	use_defaults();
+    }
+
+    public void use_defaults()
+    {
+	player = "aplay %(file)s";
+	alarm_file = "/usr/share/ffalarms/alarm.wav";
+	repeat = 500;
+	time_24hr_format = true;
+	brightness = BRIGHTNESS;
+    }
+
+    public void load_from_file(string? filename) throws MyError
     {
 	ini = new KeyFile();
 	try {
 	    ini.load_from_file(
-		(filename != null) ? filename :
-		DEFAULT_CONFIG.replace("~", Environment.get_home_dir()),
+		(filename != null) ? filename : expand_home(DEFAULT_CONFIG),
 		KeyFileFlags.NONE);
-	    var file = ini.get_value("alarm", "file");
-	    play_cmd = ini.get_value("alarm", "player").replace("%(file)s", Shell.quote(file));
-	    if (ini.has_key("alarm", "repeat"))
-		repeat = ini.get_integer("alarm", "repeat");
+	    alarm_file = expand_home(ini.get_value("alarm", "file"));
+	    player = ini.get_value("alarm", "player");
+	    repeat = (ini.has_key("alarm", "repeat")) ?
+		ini.get_integer("alarm", "repeat") : 1;
+	    time_24hr_format = (ini.has_key("ledclock", "24hr_format")) ?
+		ini.get_boolean("ledclock", "24hr_format") : false;
+	    brightness = (ini.has_key("ledclock", "brightness")) ?
+		ini.get_integer("ledclock", "brightness") : BRIGHTNESS;
 	} catch (KeyFileError e) {
 	    throw new MyError.CONFIG(e.message);
 	} catch (FileError e) {
-	    throw new MyError.CONFIG("Configuration file error: %s".printf(e.message));
+	    if (filename != null || ! (e is FileError.NOENT))
+		throw new MyError.CONFIG("Configuration file error: %s"
+					 .printf(e.message));
+	    else
+		use_defaults();
 	}
     }
+
+    // could be a property if Vala properties would support throws
+    public string alarm_cmd() throws MyError {
+	if (! FileUtils.test(alarm_file, FileTest.IS_REGULAR)) {
+	    throw new MyError.CONFIG("%s: Alarm file does not exist"
+				     .printf(alarm_file));
+	}
+	return player.replace("%(file)s", Shell.quote(alarm_file));
+    }
+
 }
 
 
@@ -765,8 +828,9 @@ class Main {
 	    return;
 	}
 	if (alarms != null) {
+	    var cfg = new Config();
 	    try {
-		var cfg = new Config(config_file);
+		cfg.load_from_file(config_file);
 		foreach (weak string? s in alarms) {
 		    time_t t;
 		    if (s == "now") {
@@ -783,7 +847,7 @@ class Main {
 HH:MM or be the word now");
 			t = next_hm(h, m);
 		    }
-		    set_alarm(t, cfg.play_cmd, cfg.repeat, at_spool);
+		    set_alarm(t, cfg.alarm_cmd(), cfg.repeat, at_spool);
 		}
 	    } catch (MyError e) {
 		die(e.message);
