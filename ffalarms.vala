@@ -457,6 +457,7 @@ class Message
     {
 	w = win.inwin_add();
 	bx = new Box(w);
+	bx.scale_set(1.0);
 	bx.pack_end(frame("pad_small"));
 	if (title != null) {
 	    tt = new Label(w);
@@ -480,7 +481,8 @@ class Message
 	bx.pack_end(hbx);
 	bx.pack_end(frame("pad_medium"));
 	bt = new Button(w);
-	bt.label_set("Ok");
+	bt.label_set("  Ok  ");
+	bt.scale_set(1.5);
 	bt.smart_callback_add("clicked", () => { this.w = null; });
 	bx.pack_end(bt);
 	bx.pack_end(frame("pad_small"));
@@ -680,7 +682,6 @@ class Config
 	}
 	return player.replace("%(file)s", Shell.quote(alarm_file));
     }
-
 }
 
 
@@ -905,7 +906,6 @@ HH:MM or be the word now");
 	if (list || kill || alarms != null || deletes != null)
 	    Posix.exit(0);
 
-	Environment.set_variable("ELM_SCALE", "1.5", false); // dirty hack
 	Elm.init(args);
 	var mw = new MainWin(edje_file, at_spool, config_file);
 	if (! puzzle) {
