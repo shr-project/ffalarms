@@ -63,9 +63,12 @@ time_t next_hm(int hour, int minute)
     var t = Time.local(now) { hour=hour, minute=minute, second=0 };
     var timestamp = t.mktime();
     if (timestamp <= now) {
-	// XXX handle Daylight Saving Time and test it
 	t.day += 1;
 	timestamp = t.mktime(); // also normalizes Time
+    }
+    if (t.hour != hour) {
+	t.hour = hour;
+	timestamp = t.mktime();
     }
     return timestamp;
 }
