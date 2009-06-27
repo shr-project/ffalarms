@@ -22,6 +22,7 @@ fi
 
 quit() {
         kill $!
+        killall -USR1 ffalarms
         wait
         alsactl -f "$ORIG_ALSASTATE" restore
         if [ "$SS_TIMEOUT" -gt 0 ]; then

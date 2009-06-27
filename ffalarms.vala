@@ -17,6 +17,7 @@
 
 using Elm;
 using Edje;
+using Ecore;
 using Posix;
 
 public const string VERSION = "0.0";
@@ -528,6 +529,10 @@ class MainWin
 	lt.show();
 
 	update_alarms();
+	var black_hole = new HashTable<int, EventHandler>.full(null, null,
+							       null, null);
+	black_hole.insert(0, new EventHandler(EventType.SIGNAL_USER,
+					      sig_user));
 
 	weak Edje.Object edje = (Edje.Object) lt.edje_get();
 	edje.part_swallow("list", alarms.lst);
@@ -551,6 +556,12 @@ class MainWin
 		    .printf(e.message), "Error reading config file");
 	    cfg.use_defaults();
 	}
+    }
+
+    bool sig_user(int type, void *event)
+    {
+	update_alarms();
+	return false;
     }
 
     void set_alarm_(int hour, int minute)
@@ -693,7 +704,7 @@ class Alarm {
     int cnt;
     double volume = 60;
     FileStream mixer;
-    MainLoop ml;
+    GLib.MainLoop ml;
     static pid_t player_pid = 0;
 
     public Alarm(string play_cmd, int cnt) {
@@ -705,7 +716,7 @@ class Alarm {
     {
 	int stdin;
 
-	ml = new MainLoop(null, false);
+	ml = new GLib.MainLoop(null, false);
 	request_resources();
 	try {
 	    Process.spawn_async_with_pipes(
