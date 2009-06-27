@@ -16,10 +16,10 @@ FILES_${PN} += "${datadir}/${PN} ${datadir}/applications ${datadir}/pixmaps"
 RDEPENDS = "elementary glib-2.0 dbus-glib atd alsa-utils-amixer \
 	    alsa-utils-alsactl openmoko-alsa-scenarios ttf-dejavu-sans"
 
-RSUGGESTS = "mplayer alsa-utils-aplay"
+RSUGGESTS = "mplayer alsa-utils-aplay frameworkd"
 
 do_compile() {
-	oe_runmake VALAC=/usr/bin/valac VAPIDIR=${STAGING_DATADIR}/vala/vapi
+	oe_runmake VAPIDIR=${STAGING_DATADIR}/vala/vapi
 }
 
 do_install() {

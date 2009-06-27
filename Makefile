@@ -7,6 +7,7 @@ Makefile \
 ffalarms.bb \
 ffalarms.vala \
 ffalarms.vapi \
+ffalarms.c \
 data/ffalarms.edc \
 data/alarm.sh \
 data/alarm.wav \
@@ -55,7 +56,7 @@ ffalarms.c: ffalarms.vala ffalarms.vapi
 data/ffalarms.edj: data/ffalarms.edc
 	edje_cc $< $@
 
-dist:
+dist: ffalarms.c
 	mkdir -p ffalarms-${VERSION}
 	mkdir -p ffalarms-${VERSION}/data ffalarms-${VERSION}/images
 	for x in ${FFALARMS_FILES}; do cp $$x ffalarms-${VERSION}/$$x; done
@@ -87,9 +88,8 @@ run: armv4t/ffalarms
 
 
 PN=ffalarms
-PV=0.0
+PV=${VERSION}
 PR=r0
-#PR=r0+hg
 IPK=$(TOPDIR)/tmp/deploy/glibc/ipk/armv4t/$(PN)_$(PV)-$(PR)_armv4t.ipk
 
 TOPDIR=~/shr/shr-unstable
