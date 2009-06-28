@@ -5,7 +5,7 @@ AUTHOR = "Łukasz Pankowski <lukpank@o2.pl>"
 MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
-DEPENDS = "vala-native libeflvala elementary"
+DEPENDS = "vala-native libeflvala"
 PV = "0.0"
 PR = "r0"
 
@@ -13,7 +13,7 @@ SRC_URI = "file://ffalarms-${PV}.tar.gz"
 
 FILES_${PN} += "${datadir}/${PN} ${datadir}/applications ${datadir}/pixmaps"
 
-RDEPENDS = "elementary glib-2.0 dbus-glib atd alsa-utils-amixer \
+RDEPENDS = "atd alsa-utils-amixer \
 	    alsa-utils-alsactl openmoko-alsa-scenarios ttf-dejavu-sans"
 
 RSUGGESTS = "mplayer alsa-utils-aplay frameworkd"
