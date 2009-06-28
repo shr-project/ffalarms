@@ -6,7 +6,7 @@ MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
 DEPENDS = "vala-native libeflvala"
-PV = "0.0"
+PV = "0.2.3"
 PR = "r0"
 
 SRC_URI = "file://ffalarms-${PV}.tar.gz"

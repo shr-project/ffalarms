@@ -15,7 +15,7 @@ to select AM/PM (if not AM).
 The alarm starts quietly and slowly increases the volume up to the
 maximum.  Thus you may be awaken by a gentle sound if your sleep is
 shallow (especially if you select a nice tune as an alarm), but you
-may require it to get lauder if you are in a deep sleep or hard
+may require it to get louder if you are in a deep sleep or hard
 working and ignoring distractions from environment.
 
 To confirm turning off the alarm you have to click four buttons with
@@ -40,7 +40,7 @@ The layout of the user interface is clearly inspired by that of Neon_
 confirmation puzzle idea is taken from Zhone_, FSO_ usable demo
 application.  The 7 segment LED-like night clock is inspired by the
 `LED clock`_ (`on opkg.org`__), which I have discovered on opkg.org_
-while having ffalarms useable on my Neo FreeRuner (though not yet in a
+while having ffalarms usable on my Neo FreeRuner (though not yet in a
 releasable state).
 
 .. _Neon: http://neon.projects.openmoko.org/
@@ -55,16 +55,24 @@ releasable state).
 Dependencies
 ------------
 
-Mostly Python_ and EFL_.
+Ffalarms is written in Vala_ (0.7.3 is known to work).
 
-.. _Python: http://python.org/
-.. _EFL: http://enlightenment.org/p.php?p=about/efl&l=en
+Requires:
 
-::
+- `EFL Vala Bindings`_ (libeflvala)
+- atd_ (may be atd-over-fso_ working on top of FSO_ platform)
+- ``alsa-utils-amixer`` ``alsa-utils-alsactl``
+  ``openmoko-alsa-scenarios`` ``ttf-dejavu-sans``
 
-    python-edje python-ecore python-re python-datetime atd
-    alsa-utils-amixer alsa-utils-alsactl openmoko-alsa-scenarios
-    ttf-liberation-sans
+Optional:
+
+- FSO_ platform (to avoid suspend during alarm by FSO_ platform and
+  change backlight brightness in LED clock mode)
+
+.. _Vala: http://live.gnome.org/Vala
+.. _EFL Vala Bindings: http://git.freesmartphone.org/?p=libeflvala.git;a=summary
+.. _atd: http://projects.linuxtogo.org/projects/atd/
+.. _atd-over-fso: http://projects.openmoko.org/frs/?group_id=260
 
 
 Suggested media players
@@ -76,14 +84,12 @@ Suggested media players
 Features
 --------
 
-- It is developed and works on `Om 2008.12`_ and SHR_ (for SHR you
-  need to install atd-over-fso from ffalarms download page to have atd
-  daemon working on top of FSO_).
+- Best works on distributions featuring Elementary_ and FSO_ (such as
+  SHR_).  Earlier versions (up to 0.2.2, written in Python) work on
+  `Om 2008.12`_ and SHR_.
 
-- Can be configured to use any media player, MPlayer_ is of course
-  recommended, but it may work with aplay_ from ``alsa-utils-aplay``,
-  if wav files are enough for you.  If you have ``alsa-utils-aplay``
-  installed it should work out of the box.
+- May be configured to use any media player, such as MPlayer_, but
+  works out of the box with aplay_ from ``alsa-utils-aplay``.
 
 - Adding, listing, and removing alarms is possible from command line
   (see `Command line options`_ below).
@@ -92,9 +98,10 @@ Features
   completely themeable, as they are implemented in Edje_ using Embryo_
   for logic.
 
-- It currently depends only on ``atd`` for alarm scheduling, hope it
-  makes it more portable.
+- It currently depends on atd_ for alarm scheduling, hope it makes it
+  more portable (but Elementary_ makes it more problematic).
 
+.. _Elementary: http://trac.enlightenment.org/e/wiki/Elementary
 .. _MPlayer: http://www.mplayerhq.hu/design7/news.html
 .. _aplay: http://en.wikipedia.org/wiki/Aplay
 .. _Om 2008.12: http://wiki.openmoko.org/wiki/Om_2008.12_Update
@@ -154,15 +161,13 @@ is equivalent to ::
     brightness=33
 
 Which will play a given file 500 times (ie. for about 5 minutes).  But
-if you have mplayer installed you can use its ``-loop`` option to
+if you have MPlayer_ installed you can use its ``-loop`` option to
 obtain the same effect (and then omit repeat as it obviously defaults
 to 1) ::
 
     [alarm]
     player=mplayer -really-quiet -loop 500 %(file)s
-    file=~/song.foo
-
-But why would you use a WAV file if you have MPlayer installed?
+    file=~/song.mp3
 
 Reference ``%(file)s`` in the player option will be expanded to a
 value of file option with leading tilde (``~``) replaced with the home
@@ -208,12 +213,12 @@ Credits
 -------
 
 Some images are generated from SVG icons from `Tango Desktop Project`_
-(licenced under the Creative Commons Attribution Share-Alike license),
+(licensed under the Creative Commons Attribution Share-Alike license),
 this includes ``add.png``, ``remove.png``, ``go-last.png``, and
 ``led-clock.png`` (generated from ``stock_weather-night-clear.svg``).
 
 Some images are generated from SVG icons available in Debian package
-gnome-icon-theme_ (licenced under `GNU GPL v2`_) which says they are
+gnome-icon-theme_ (licensed under `GNU GPL v2`_) which says they are
 available from here__, this includes go-last.png, gtk-close.png, and
 ffalarms.svg (based on appointment-new.svg).
 
@@ -225,14 +230,6 @@ edition version 4.3.2 which is licensed under `GNU GPL v2`_.
 .. __: http://ftp.acc.umu.se/pub/GNOME/sources/gnome-icon-theme/
 .. _GNU GPL v2: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 .. _Trolltech's Qtopia: http://qtopia.net/modules/devices/
-
-
-Bugs
-----
-
-I once experienced keyboard popping up on top of LED clock without
-resizing it, thus covering the close button ("X"), if this ever
-happens press key ``q`` to close the LED clock.
 
 
 TODO
@@ -257,6 +254,16 @@ TODO
 
 Versions
 --------
+
+0.2.3 (2009-06-28)
+..................
+
+- rewritten using Vala/libeflvala/Elementary (same features as 0.2.2)
+
+- avoids suspend and keeps display on during alarm on FSO platform
+  (such as SHR)
+
+- note: will not stop alarms added by previous versions of ffalarms
 
 0.2.2 (2009-05-22)
 ..................
