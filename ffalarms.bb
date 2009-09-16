@@ -5,7 +5,7 @@ AUTHOR = "Łukasz Pankowski <lukpank@o2.pl>"
 MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
-DEPENDS = "vala-native libeflvala"
+DEPENDS = "elementary"
 PV = "0.2.3"
 PR = "r0"
 

@@ -43,6 +43,8 @@ NEO=192.168.0.202
 
 all: ffalarms data/ffalarms.edj
 
+.PHONY: all dist install clean
+
 ffalarms: ffalarms.o
 	${CC} ${LDFLAGS} ${PKG_LDFLAGS} $< -o $@
 
@@ -56,7 +58,9 @@ ffalarms.c: ffalarms.vala ffalarms.vapi
 data/ffalarms.edj: data/ffalarms.edc
 	edje_cc $< $@
 
-dist: ffalarms.c
+dist: ffalarms-${VERSION}.tar.gz
+
+ffalarms-${VERSION}.tar.gz: ${FFALARMS_FILES}
 	mkdir -p ffalarms-${VERSION}
 	mkdir -p ffalarms-${VERSION}/data ffalarms-${VERSION}/images
 	for x in ${FFALARMS_FILES}; do cp $$x ffalarms-${VERSION}/$$x; done
@@ -82,6 +86,7 @@ clean:
 armv4t/ffalarms: ffalarms.c
 	${CROSS_CC} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
+.PHONY: run
 run: armv4t/ffalarms
 	rsync --archive data/alarm.sh  armv4t/ffalarms neo:~/tmp/
 	ssh neo '~/tmp/ffalarms -l'
@@ -95,20 +100,21 @@ IPK=$(TOPDIR)/tmp/deploy/glibc/ipk/armv4t/$(PN)_$(PV)-$(PR)_armv4t.ipk
 TOPDIR=~/shr/shr-unstable
 RECIPE_DIR=~/shr/local/recipes
 
+.PHONY: ipk ipk-fast ipk-info ipk-inst rebuild reinstall tags
 
 # STRANGE: somehow does not work with dash, I went back to bash
 ipk: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
 	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	( cd ${TOPDIR} && . setup-env && bitbake ffalarms-${PV} )
+	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake ffalarms-${PV}
 
 ipk-fast: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
 	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	( cd $(TOPDIR) && . setup-env && bitbake -b $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb )
-
+	cd ${TOPDIR} && . ${TOPDIR}/setup-env && \
+		bitbake -b ${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb
 
 ipk-info:
 	dpkg -I $(IPK)
@@ -119,16 +125,15 @@ ipk-inst:
 	rsync $(IPK) root@neo:
 	ssh root@neo opkg install -force-reinstall `basename $(IPK)`
 
-.PHONY: do-%
 full-do-%:
-	( cd $(TOPDIR) && . setup-env && bitbake -c $* ffalarms )
+	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* ffalarms-${PV}
 
-.PHONY: xdo-%
 do-%:
-	( cd $(TOPDIR) && . setup-env && bitbake -c $* -b $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb )
+	cd ${TOPDIR} && . ${TOPDIR}/setup-env && \
+		bitbake -c $* -b ${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb 
 
 rebuild: do-clean ipk-fast
-reinstall: do-clean ipk-fast ipk-inst
+reinstall: rebuild ipk-inst
 
 EFL=~/local/src/e
 tags:
