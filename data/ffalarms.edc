@@ -445,57 +445,12 @@
 images {
     image: "images/circle.png" COMP;
     image: "images/add.png" COMP;
-    image: "images/remove.png" COMP;
-    image: "images/led-clock.png" COMP;
     image: "images/gtk-close.png" COMP;
     image: "images/go-last.png" COMP;
 }
 
 
 collections {
-    group {
-        name: "main-group";
-
-        parts {
-            BACKGROUND;
-            TOOLBAR;
-            STATUS("list-header", "Scheduled alarms:");
-            ICON_BUTTON("new-alarm-button", "images/add.png",
-                        0.0 0.0, "background", 0 0, ICON_H ICON_H);
-            ICON_BUTTON("delete-alarm-button", "images/remove.png",
-                        1.0 0.0, "new-alarm-button", G 0, (ICON_H+G) ICON_H);
-            ICON_BUTTON("show-clock-button", "images/led-clock.png",
-                        1.0 0.0, "delete-alarm-button",
-                        G 0, (ICON_H+G) ICON_H);
-
-            part {
-                name: "list";
-                type: SWALLOW;
-
-                description{
-                    state: "default" 0.0;
-                    min: 80 100;
-
-                    rel1 {
-                        relative: 0.0 1.0;
-                        to: "list-header-bg";
-                    }
-                    rel2 {
-                        relative: 1.0 1.0;
-                        offset: 0 0;
-                    }
-                }
-
-            }
-
-        }
-        programs {
-            ICON_DIM_PROG("new-alarm-button");
-            ICON_DIM_PROG("delete-alarm-button");
-            ICON_DIM_PROG("show-clock-button");
-        }
-    }
-
     group {
         name: "clock-group";
 

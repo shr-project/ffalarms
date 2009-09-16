@@ -498,9 +498,46 @@ class Message
 }
 
 
+class Buttons
+{
+    public Box box;
+    Button[] buttons = new Button[3];
+    int idx = 0;
+    weak Elm.Object parent;
+
+    public Buttons(Elm.Object parent)
+    {
+	box = new Box(parent);
+	box.size_hint_weight_set(1.0, 0.0);
+	box.size_hint_align_set(-1.0, -1.0);
+	box.horizontal_set(true);
+	box.homogenous_set(true);
+	box.show();
+	this.parent = parent;
+    }
+
+    public void add(string label, Evas.SmartCallback cb)
+    {
+	unowned Button b;
+
+	b = buttons[idx++] = new Button(parent);
+	b.label_set(label);
+	b.smart_callback_add("clicked", cb);
+	b.size_hint_weight_set(1.0, 0.0);
+	b.size_hint_align_set(-1.0, -1.0);
+	box.pack_end(b);
+	b.show();
+    }
+}
+
+
 class MainWin
 {
     Win win;
+    Bg bg;
+    Box bx;
+    Buttons btns;
+    Frame fr;
     Layout lt;
     Clock clock;
     AddAlarm aa;
@@ -525,28 +562,36 @@ class MainWin
 	win.title_set("Alarms");
 	win.smart_callback_add("delete-request", Elm.exit);
 
-	lt = new Layout(win);
-	lt.file_set(edje_file, "main-group");
-	lt.size_hint_weight_set(1.0, 1.0);
-	win.resize_object_add(lt);
-	lt.show();
+	bg = new Bg(win);
+	bg.size_hint_weight_set(1.0, 1.0);
+	bg.show();
+	win.resize_object_add(bg);
+
+	bx = new Box(win);
+	bx.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bx);
+	bx.show();
+
+	fr = new Frame(win);
+	fr.size_hint_weight_set(0.0, 1.0);
+	fr.size_hint_align_set(-1.0, -1.0);
+	fr.style_set("outdent_top");
+       	bx.pack_end(fr);
+	fr.show();
+
+	btns = new Buttons(win);
+	btns.add("Add", () => { (aa = new AddAlarm()).show(win, edje_file,
+	 						   set_alarm_); });
+	btns.add("Delete", start_delete_puzzle);
+	btns.add("Clock", () => { (clock = new Clock(cfg)).show(win,
+	 							edje_file); });
+	bx.pack_end(btns.box);
 
 	update_alarms();
 	var black_hole = new HashTable<int, EventHandler>.full(null, null,
 							       null, null);
 	black_hole.insert(0, new EventHandler(EventType.SIGNAL_USER,
 					      sig_user));
-
-	weak Edje.Object edje = (Edje.Object) lt.edje_get();
-	edje.part_swallow("list", alarms.lst);
-	edje.signal_callback_add(
-	    "mouse,clicked,1", "new-alarm-button",
-	    () => { (aa = new AddAlarm()).show(win, edje_file, set_alarm_); });
-	edje.signal_callback_add(
-	    "mouse,clicked,1", "delete-alarm-button", start_delete_puzzle);
-	edje.signal_callback_add(
-	    "mouse,clicked,1", "show-clock-button",
-	    () => { (clock = new Clock(cfg)).show(win, edje_file); });
 
 	win.resize(480, 640);
 	win.show();
@@ -632,7 +677,7 @@ class MainWin
 	    message(e.message);
 	}
 	alarms.lst.show();
-	((Edje.Object) lt.edje_get()).part_swallow("list", alarms.lst);
+	fr.content_set(alarms.lst);
     }
 }
 

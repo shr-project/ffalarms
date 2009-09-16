@@ -8,6 +8,7 @@ ffalarms.bb \
 ffalarms.vala \
 ffalarms.vapi \
 ffalarms.c \
+ffalarms.h \
 data/ffalarms.edc \
 data/alarm.sh \
 data/alarm.wav \
@@ -20,6 +21,8 @@ images/remove.png \
 images/ffalarms.svg \
 images/led-clock.png \
 images/go-last.png
+
+FIX_CFLAGS = -I.
 
 PREFIX=/usr
 PKG_CFLAGS = `pkg-config --cflags elementary gobject-2.0 dbus-glib-1`
@@ -49,7 +52,7 @@ ffalarms: ffalarms.o
 	${CC} ${LDFLAGS} ${PKG_LDFLAGS} $< -o $@
 
 ffalarms.o: ffalarms.c
-	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
+	${CC} -c ${FIX_CFLAGS} ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi
 	${VALAC} ${VALAFLAGS} --pkg=elm --pkg=edje --pkg=dbus-glib-1 --pkg posix -C $^
@@ -84,7 +87,7 @@ clean:
 
 
 armv4t/ffalarms: ffalarms.c
-	${CROSS_CC} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
+	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
 .PHONY: run
 run: armv4t/ffalarms
