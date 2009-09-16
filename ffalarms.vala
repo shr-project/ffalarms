@@ -806,7 +806,7 @@ class Main {
     static bool list = false;
     static bool kill = false;
     static bool puzzle = false;
-    static string play_cmd = false;
+    static string play_cmd = null;
 
     [CCode (array_length = false, array_null_terminated = true)]
     static string[] alarms = null;
@@ -873,8 +873,7 @@ class Main {
 			    m = hm[1].to_int();
 			}
 			if (h < 0 || h > 23 || m < 0 || m > 59)
-			    die("argument to -s or --set must be of the form\
-HH:MM or be the word now");
+			    die("argument to -s or --set must be of the form HH:MM or be the word now");
 			t = next_hm(h, m);
 		    }
 		    set_alarm(t, cfg.alarm_cmd(), cfg.repeat, at_spool);

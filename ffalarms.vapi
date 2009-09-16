@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-const Posix.sighandler_t SIG_IGN;
+public Posix.sighandler_t SIG_IGN;
 
 [CCode (cheader_filename="stdio.h")]
 public GLib.FileStream? popen(string cmd, string mode);
