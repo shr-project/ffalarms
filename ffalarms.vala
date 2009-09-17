@@ -219,6 +219,9 @@ public void display_alarms_list(string at_spool) throws MyError
 class AddAlarm
 {
     Win win;
+    Bg bg;
+    Box bx;
+    Buttons btns;
     Layout lt;
     int hour = -1;
     int minute = 0;
@@ -233,16 +236,29 @@ class AddAlarm
 	win.smart_callback_add("delete-request", () => { this.win = null; });
 	this.set_alarm = set_alarm;
 
+	bg = new Bg(win);
+	bg.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bg);
+	bg.show();
+
+	bx = new Box(win);
+	bx.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bx);
+	bx.show();
+
 	lt = new Layout(win);
 	lt.file_set(edje_file, "clock-group");
 	lt.size_hint_weight_set(1.0, 1.0);
-	win.resize_object_add(lt);
+	lt.size_hint_align_set(-1.0, -1.0);
+	bx.pack_end(lt);
 	lt.show();
 
+	btns = new Buttons(win);
+	btns.add("Add", this.add);
+	btns.add("Close", this.close);
+	bx.pack_end(btns.box);
+
 	weak Edje.Object edje = (Edje.Object) lt.edje_get();
-	edje.signal_callback_add("mouse,clicked,1", "cancel-button", this.close);
-	edje.signal_callback_add("mouse,clicked,1", "ok-button", this.close);
-	edje.signal_callback_add("mouse,clicked,1", "cancel-button", this.close);
 	edje.signal_callback_add("clicked", "hour-*", this.set_hour);
 	edje.signal_callback_add("clicked", "minute-*", this.set_minute);
 
@@ -264,13 +280,16 @@ class AddAlarm
 	    this.minute = m;
     }
 
-    public void close(Edje.Object obj, string sig, string src)
+    public void add()
     {
-	if (src == "ok-button") {
-	    if (this.hour == -1)
-		return;
+	if (this.hour != -1) {
 	    this.set_alarm(this.hour, this.minute);
+	    close();
 	}
+    }
+
+    public void close()
+    {
 	win = null;
     }
 }

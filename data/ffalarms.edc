@@ -444,9 +444,7 @@
 
 images {
     image: "images/circle.png" COMP;
-    image: "images/add.png" COMP;
     image: "images/gtk-close.png" COMP;
-    image: "images/go-last.png" COMP;
 }
 
 
@@ -455,11 +453,6 @@ collections {
         name: "clock-group";
 
         parts {
-            BACKGROUND;
-            TOOLBAR;
-            CONTENT;
-            STATUS("status", "Add alarm at");
-
             part {
                 name: "circle";
                 type: IMAGE;
@@ -469,20 +462,9 @@ collections {
                     state: "default" 0.0;
                     max: 480 480;
                     align: 0.5 0.5;
-
-                    rel1 {
-                        relative: 0.0 0.0;
-                        offset: 5 5;
-                        to: "content";
-                    }
-                    rel2 {
-                        relative: 1.0 1.0;
-                        offset: -5 -5;
-                        to: "content";
-                    }
-                    image {
-                        normal: "images/circle.png";
-                    }
+                    rel1.relative: 0.0 0.0;
+                    rel2.relative: 1.0 1.0;
+                    image.normal: "images/circle.png";
                 }
             }
 
@@ -490,12 +472,6 @@ collections {
                    (-3/2*A-G) -A/2, (-1/2*A-G) A/2);
             BUTTON("hour", "HH", 1.0 0.0, "am-pm", G 0, (A+G) A);
             BUTTON("minute", "00", 1.0 0.0, "hour", G 0, (A+G) A);
-
-            CANCEL_BUTTON;
-
-            ICON_BUTTON_EXT("ok-button", "images/add.png",
-                            1.0 0.0, -2*ICON_H 0, "background",
-                            1.0 0, -ICON_H ICON_H, "background", );
 
             HOUR_BUTTON("1", 0.5+0.5*SIN_33 0.5-0.5*COS_33, -A, 0, 0, A);
             HOUR_BUTTON("2", 0.5+0.5*COS_33 0.5-0.5*SIN_33, -A, 0, 0, A);
@@ -516,8 +492,6 @@ collections {
         }
 
         programs {
-            ICON_DIM_PROG("ok-button");
-            ICON_DIM_PROG("cancel-button");
             PROG("load", "load", "", script { start(); });
             PROG("digit-down", "mouse,down,1", "*-hour-button",
                  script { digit_down(src); });
