@@ -90,9 +90,9 @@ armv4t/ffalarms: ffalarms.c
 	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
 .PHONY: run
-run: armv4t/ffalarms
-	rsync --archive data/alarm.sh  armv4t/ffalarms neo:~/tmp/
-	ssh neo '~/tmp/ffalarms -l'
+run: armv4t/ffalarms data/ffalarms.edj
+	rsync --archive data/ffalarms.edj armv4t/ffalarms ${NEO}:~/tmp/
+	ssh ${NEO} sh -c '". /etc/profile; DISPLAY=:0 ~/tmp/ffalarms --edje ~/tmp/ffalarms.edj"'
 
 
 PN=ffalarms
@@ -125,8 +125,8 @@ ipk-info:
 	ls -lh $(IPK)
 
 ipk-inst:
-	rsync $(IPK) root@neo:
-	ssh root@neo opkg install -force-reinstall `basename $(IPK)`
+	rsync $(IPK) root@${NEO}:
+	ssh root@${NEO} opkg install -force-reinstall `basename $(IPK)`
 
 full-do-%:
 	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* ffalarms-${PV}
