@@ -298,6 +298,10 @@ class AddAlarm
 class Puzzle
 {
     Win win;
+    Bg bg;
+    Button[] b = new Button[4];
+    Frame fr;
+    Label lb;
     Layout lt;
     public delegate void DeleteAlarms(Eina.List<weak ListItem> sel);
     DeleteAlarms delete_alarms;
@@ -314,6 +318,20 @@ class Puzzle
 	win.title_set("Delete alarm");
 	win.smart_callback_add("delete-request", this.close);
 
+	bg = new Bg(win);
+	bg.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bg);
+	bg.show();
+
+	lb = new Label(win);
+	lb.label_set("<b>%s<b>".printf(label));
+	lb.show();
+
+	fr = new Frame(win);
+	fr.style_set("outdent_top");
+	fr.content_set(lb);
+	fr.show();
+
 	lt = new Layout(win);
 	lt.file_set(edje_file, "puzzle-group");
 	lt.size_hint_weight_set(1.0, 1.0);
@@ -321,10 +339,11 @@ class Puzzle
 	lt.show();
 
 	weak Edje.Object edje = (Edje.Object) lt.edje_get();
-	edje.signal_callback_add("mouse,clicked,1", "cancel-button", this.close);
 	edje.signal_callback_add("solved", "", this.solved);
+	edje.part_swallow("frame", fr);
+	for (int i = 0; i < 4; i++)
+	    edje.part_swallow("%d-button".printf(i), b[i] = new Button(win));
 	edje.signal_emit("start", "");
-	edje.part_text_set("label", label);
 
 	win.resize(480, 640);
 	win.show();
@@ -557,7 +576,6 @@ class MainWin
     Box bx;
     Buttons btns;
     Frame fr;
-    Layout lt;
     Clock clock;
     AddAlarm aa;
     Puzzle puz;

@@ -40,7 +40,7 @@ xset -display $DISPLAY s reset
 
 alsactl -f "$ALSASTATE" restore
 
-DISPLAY=$DISPLAY ffalarms --puzzle &
+DISPLAY=$DISPLAY sh -c '. /etc/profile; ffalarms --puzzle' &
 ffalarms --play-alarm "$ALARM_CMD" $REPEAT &
 wait $!
 

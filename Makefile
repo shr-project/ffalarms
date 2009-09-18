@@ -13,14 +13,9 @@ data/ffalarms.edc \
 data/alarm.sh \
 data/alarm.wav \
 data/ffalarms.desktop \
-images/gtk-close.png \
-images/add.png \
 images/circle.png \
 images/ffalarms.png \
-images/remove.png \
-images/ffalarms.svg \
-images/led-clock.png \
-images/go-last.png
+images/ffalarms.svg
 
 FIX_CFLAGS = -I.
 

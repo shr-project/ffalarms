@@ -22,14 +22,10 @@
 #define BOLD_FONT "DejaVu Sans:style=Bold"
 #define FONT "DejaVu Sans"
 
-#define ICON_H 96
-#define STATUS_H 20
-
 #define SIN_33 0.54463903501502708
 #define COS_33 0.83867056794542405
 
 #define LED_COLOR 0 255 0 255
-#define BG_RGB 226 226 226
 
 #define PUZZLE_TIMEOUT 5
 #define PUZZLE_INTER_TIMEOUT 1
@@ -64,8 +60,6 @@
             }                                                           \
         }                                                               \
     }
-#define ALPHA_BACKGROUND(NAME, ALPHA) COLOR_BACKGROUND(NAME, BG_RGB ALPHA)
-#define BACKGROUND ALPHA_BACKGROUND("background", 255)
 
 #define HOUR_BUTTON(NAME, REL, OF1_X, OF1_Y, OF2_X, OF2_Y)              \
     part {                                                              \
@@ -195,106 +189,41 @@
         }                                                               \
     }
 
-#define ICON_BUTTON(NAME, IMG, POS, TO, OF1, OF2)                       \
-    ICON_BUTTON_EXT(NAME, IMG, POS, OF1, TO, POS, OF2, TO, )
-
-
-#define CANCEL_BUTTON                                                   \
-    ICON_BUTTON_EXT("cancel-button", "images/gtk-close.png",            \
-                    1.0 0.0, -ICON_H 0, "background",                   \
-                    1.0 0.0, 0 ICON_H, "background",                    \
-                    min: 90 90; max: 90 90);
-
-#define CANCEL_BUTTON_YCENTER                                           \
-    ICON_BUTTON_EXT("cancel-button", "images/gtk-close.png",            \
-                    1.0 0.5, -ICON_H (-ICON_H/2), "background",         \
-                    1.0 0.5, 0 (ICON_H/2), "background",                \
-                    min: 90 90; max: 90 90);
-
-#define ICON_BUTTON_EXT(NAME, IMG, POS1, OF1, TO1, POS2, OF2, TO2, EXTRA) \
-    part {                                                              \
-        name: NAME;                                                     \
-        type: IMAGE;                                                    \
-        mouse_events: 1;                                                \
-                                                                        \
-        description {                                                   \
-            align: 0.5 0.5;                                             \
-            EXTRA;                                                      \
-                                                                        \
-            rel1 {                                                      \
-                relative: POS1;                                         \
-                offset: OF1;                                            \
-                to: TO1;                                                \
-            }                                                           \
-            rel2 {                                                      \
-                relative: POS2;                                         \
-                offset: OF2;                                            \
-                to: TO2;                                                \
-            }                                                           \
-            image.normal: IMG;                                          \
-        }                                                               \
-        description {                                                   \
-            state: "clicked" 0.0;                                       \
-            inherit: "default" 0.0;                                     \
-            color: 127 127 127 255;                                     \
-        }                                                               \
-    }
-
-#define ICON_DIM_PROG(NAME)                                             \
-    program {                                                           \
-        name: NAME"-click";                                             \
-        signal: "mouse,down,1";                                         \
-        source: NAME;                                                   \
-        action: STATE_SET "clicked" 0.0;                                \
-        target: NAME;                                                   \
-    }                                                                   \
-    program {                                                           \
-        name: NAME"-unclick";                                           \
-        signal: "mouse,up,1";                                           \
-        source: NAME;                                                   \
-        action: STATE_SET "default" 0.0;                                \
-        target: NAME;                                                   \
-    }
-
-#define SQR_BUTTON_EXT(NAME, TXT, ALIGN, POS1, OF1, TO1, POS2, OF2, TO2) \
+#define SQR_BUTTON_EXT(NAME, TXT, ALIGN, POS1, OF1, POS2, OF2)          \
     part {                                                              \
         name: NAME"-button";                                            \
-        type: RECT;                                                     \
+        type: SWALLOW;                                                  \
         mouse_events: 1;                                                \
                                                                         \
         description {                                                   \
             state: "default" 0.0;                                       \
             align: ALIGN;                                               \
-            color: 0 0 0 30;                                            \
             aspect: 1 1;                                                \
+            aspect_preference: BOTH;                                    \
+            min: 60 60;                                                 \
                                                                         \
             rel1 {                                                      \
                 relative: POS1;                                         \
                 offset: OF1;                                            \
-                to: TO1;                                                \
             }                                                           \
             rel2 {                                                      \
                 relative: POS2;                                         \
                 offset: OF2;                                            \
-                to: TO2;                                                \
             }                                                           \
-        }                                                               \
-        description {                                                   \
-            state: "selected" 0.0;                                      \
-            inherit: "default" 0.0;                                     \
-            color: 0 0 0 80;                                            \
         }                                                               \
     }                                                                   \
     part {                                                              \
         name: NAME;                                                     \
         type: TEXT;                                                     \
+        effect: SOFT_OUTLINE;                                           \
         mouse_events: 0;                                                \
         repeat_events: 1;                                               \
                                                                         \
         description {                                                   \
             state: "default" 0.0;                                       \
             align: 0.5 0.5;                                             \
-            color: 0 0 0 255;                                           \
+            color: 255 255 255 255;                                     \
+            color2: 0 0 0 255;                                          \
                                                                         \
             rel1.to: NAME"-button";                                     \
             rel2.to: NAME"-button";                                     \
@@ -306,27 +235,17 @@
             }                                                           \
         }                                                               \
         description {                                                   \
+            state: "selected" 0.0;                                      \
+            inherit: "default" 0.0;                                     \
+            color: 0 0 0 255;                                           \
+            color2: 255 255 255 255;                                    \
+        }                                                               \
+        description {                                                   \
             state: "restart" 0.0;                                       \
             inherit: "default" 0.0;                                     \
             color: 255 0 0 255;                                         \
             text.size: 60;                                              \
         }                                                               \
-    }
-
-#define BUTTON_PROG(NAME)                                               \
-    program {                                                           \
-        name: "select-"NAME"-button";                                   \
-        signal: "select";                                               \
-        source: NAME"-button";                                          \
-        action: STATE_SET "selected" 0.0;                               \
-        target: NAME"-button";                                          \
-    }                                                                   \
-    program {                                                           \
-        name: "unselect-"NAME"-button";                                 \
-        signal: "unselect";                                             \
-        source: NAME"-button";                                          \
-        action: STATE_SET "default" 0.0;                                \
-        target: NAME"-button";                                          \
     }
 
 #define SEGMENT(NAME, SEG_NAME, REL1, REL2)                             \
@@ -376,75 +295,8 @@
     SEGMENT(NAME, "5", 0.45 0, 1 0.2);
 
 
-#define TOOLBAR                                                         \
-    part {                                                              \
-        name: "toolbar";                                                \
-        type: RECT;                                                     \
-                                                                        \
-        description {                                                   \
-            color: 177 177 255 255;                                     \
-            rel1.relative: 0.0 0.0;                                     \
-            rel2 {                                                      \
-                relative: 1.0 0.0;                                      \
-                offset: 0 ICON_H;                                       \
-            }                                                           \
-        }                                                               \
-    }
-
-#define STATUS(NAME, TXT)                                               \
-    part {                                                              \
-        name: NAME"-bg";                                                \
-        type: RECT;                                                     \
-                                                                        \
-        description {                                                   \
-            color: 106 106 153 255;                                     \
-            rel1.offset: 0 ICON_H;                                      \
-            rel2 {                                                      \
-                relative: 1.0 0.0;                                      \
-                offset: 0 (ICON_H+STATUS_H);                            \
-            }                                                           \
-        }                                                               \
-    }                                                                   \
-    part {                                                              \
-        name: NAME;                                                     \
-        type: TEXT;                                                     \
-                                                                        \
-        description {                                                   \
-            color: 255 255 255 255;                                     \
-            rel1 {                                                      \
-                relative: 0.0 0.0;                                      \
-                offset: M 0;                                            \
-                to: NAME"-bg";                                          \
-            }                                                           \
-            rel2 {                                                      \
-                relative: 1.0 1.0;                                      \
-                to: NAME"-bg";                                          \
-            }                                                           \
-            text {                                                      \
-                text: TXT;                                              \
-                font: BOLD_FONT;                                        \
-                size: 12;                                               \
-                align: 0.0 0.5;                                         \
-            }                                                           \
-        }                                                               \
-    }
-
-#define CONTENT                                                         \
-    part {                                                              \
-        name: "content";                                                \
-        type: RECT;                                                     \
-                                                                        \
-        description {                                                   \
-            visible: 0;                                                 \
-            rel1.offset: 0 (ICON_H + STATUS_H);                         \
-            rel2.relative: 1.0 1.0;                                     \
-        }                                                               \
-    }
-
-
 images {
     image: "images/circle.png" COMP;
-    image: "images/gtk-close.png" COMP;
 }
 
 
@@ -600,27 +452,36 @@ collections {
         name: "puzzle-group";
 
         parts {
-            BACKGROUND;
-            TOOLBAR;
-            CANCEL_BUTTON;
-            STATUS("label", "Turning of running alarm");
-            CONTENT;
-            SQR_BUTTON_EXT("0", "1", 1.0 1.0,
-                           0.1 0.1, 0 0, "content",
-                           0.5 0.5, -M -M, "content");
-            SQR_BUTTON_EXT("1", "2", 0.0 1.0,
-                           0.5 0.1, M 0, "content",
-                           0.9 0.5, 0 -M, "content");
-            SQR_BUTTON_EXT("2", "3", 1.0 0.0,
-                           0.1 0.5, 0 M, "content",
-                           0.5 0.9, -M 0, "content");
-            SQR_BUTTON_EXT("3", "4", 0.0 0.0,
-                           0.5 0.5, M M, "content",
-                           0.9 0.9, 0.0 0.0, "content");
-        }
-        programs {
-            ICON_DIM_PROG("cancel-button");
+            part {
+                name: "frame";
+                type: SWALLOW;
 
+                description {
+                    rel1 {
+                        relative: 0 0.14;
+                        to_x: "0-button";
+                    }
+                    rel2 {
+                        relative: 1 0.16;
+                        to_x: "1-button";
+                    }
+                }
+            }
+            SQR_BUTTON_EXT("0", "1", 1.0 1.0,
+                           0.1 0.3, 0 0,
+                           0.5 0.6, -M -M);
+            SQR_BUTTON_EXT("1", "2", 0.0 1.0,
+                           0.5 0.3, M 0,
+                           0.9 0.6, 0 -M);
+            SQR_BUTTON_EXT("2", "3", 1.0 0.0,
+                           0.1 0.6, 0 M,
+                           0.5 0.9, -M 0);
+            SQR_BUTTON_EXT("3", "4", 0.0 0.0,
+                           0.5 0.6, M M,
+                           0.9 0.9, 0.0 0.0);
+        }
+
+        programs {
             program {
                 name: "start";
                 signal: "start";
@@ -628,39 +489,19 @@ collections {
                 script { start(1); }
             }
             program {
-                name: "stop";
+                name: "clicked";
                 signal: "mouse,clicked,1";
-                source: "cancel-button";
-                script { set_int(cur_num, -1); }
-            }
-            program {
-                name: "mouse-down";
-                signal: "mouse,down,1";
                 source: "?-button";
                 script {
                     new s[2];
                     getsarg(1, s, 2);
-                    mouse_down(atoi(s));
-                }
-            }
-            program {
-                name: "up";
-                signal: "mouse,up,1";
-                source: "*";
-                script {
-                    if (get_int(cur_num) == btn_cnt) {
-                        set_int(cur_num, -1);
-                        emit("solved", "");
-                    }
+                    clicked(atoi(s));
                 }
             }
         }
+
         script {
             const btn_cnt = 4;
-
-            new const btns[] = {
-                PART:"0-button", PART:"1-button",
-                PART:"2-button", PART:"3-button" }
 
             new const btns_txt[] = { PART:"0", PART:"1", PART:"2", PART:"3" }
 
@@ -682,7 +523,6 @@ collections {
                     return;
                 set_int(cur_num, -2);
                 for (new i = 0; i < btn_cnt; i++) {
-                    set_state(btns[i], "default", 0.0);
                     set_text(btns_txt[i], "?");
                     set_state(btns_txt[i], "restart", 0.0);
                 }
@@ -695,7 +535,6 @@ collections {
                 set_perm(puzzle);
                 new s[10];
                 for (new i = 0; i < btn_cnt; i++) {
-                    set_state(btns[i], "default", 0.0);
                     set_state(btns_txt[i], "default", 0.0);
                     snprintf(s, 10, "%d", fetch_int(puzzle, i) + 1);
                     set_text(btns_txt[i], s);
@@ -704,18 +543,26 @@ collections {
                 timer(PUZZLE_TIMEOUT, "restart", 0);
             }
 
-            public mouse_down(num) {
+            public clicked(num) {
                 if (count(puzzle) == 0)
                     return;
                 new cur = get_int(cur_num);
                 if (fetch_int(puzzle, num) == cur) {
                     set_int(cur_num, cur + 1);
-                    set_state(btns[num], "selected", 0.0);
+                    set_state(btns_txt[num], "selected", 0.0);
                 } else if (cur >= 0) {
                     set_int(cur_num, 0);
                     for (new i = 0; i < btn_cnt; i++)
-                        set_state(btns[i], "default", 0.0);
+                        set_state(btns_txt[i], "default", 0.0);
                 }
+                if (get_int(cur_num) == btn_cnt) {
+                    set_int(cur_num, -1);
+                    timer(0.01, "solved", 0);
+                }
+            }
+
+            public solved(dummy) {
+                emit("solved", "");
             }
         }
     }
