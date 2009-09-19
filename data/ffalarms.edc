@@ -126,10 +126,10 @@
     }
 
 #define BUTTON(NAME, TXT, POS, TO, OF1, OF2)                            \
-    BUTTON_EXT(NAME, TXT, POS, OF1, TO, POS, OF2, TO, 0 0 0 255)
+    BUTTON_EXT(NAME, TXT, POS, OF1, TO, POS, OF2, TO, color: 0 0 0 255)
 
 #define BUTTON_COLOR(NAME, TXT, POS, TO, OF1, OF2, TXT_COLOR)           \
-    BUTTON_EXT(NAME, TXT, POS, OF1, TO, POS, OF2, TO, TXT_COLOR)
+    BUTTON_EXT(NAME, TXT, POS, OF1, TO, POS, OF2, TO, color_class: TXT_COLOR)
 
 #define BUTTON_EXT(NAME, TXT, POS1, OF1, TO1, POS2, OF2, TO2, TXT_COLOR) \
     part {                                                              \
@@ -168,7 +168,7 @@
         description {                                                   \
             state: "default" 0.0;                                       \
             align: 0.5 0.5;                                             \
-            color: TXT_COLOR;                                           \
+            TXT_COLOR;                                                  \
                                                                         \
             rel1 {                                                      \
                 relative: 0 0;                                          \
@@ -254,7 +254,7 @@
         type: RECT;                                                     \
                                                                         \
         description {                                                   \
-            color: LED_COLOR;                                           \
+            color_class: "led-color";                                   \
             rel1 { relative, REL1; to, NAME; }                          \
             rel2 { relative, REL2; to, NAME; }                          \
         }                                                               \
@@ -293,6 +293,14 @@
     SEGMENT(NAME, "2", 0 0.8, 0.55 1);                                  \
     SEGMENT(NAME, "4", 0 0, 0.55 0.2);                                  \
     SEGMENT(NAME, "5", 0.45 0, 1 0.2);
+
+
+color_classes {
+    color_class {
+        name: "led-color";
+        color: LED_COLOR;
+    }
+}
 
 
 images {
@@ -597,7 +605,7 @@ collections {
                 name: "dot-1";
                 type: RECT;
                 description {
-                    color: LED_COLOR;
+                    color_class: "led-color";
                     rel1 { relative: 0.6 (0.5-DIGIT_W/10); to: "display"; }
                     rel2 { relative: 0.7 (0.5+DIGIT_W/10); to: "display"; }
                 }
@@ -606,14 +614,14 @@ collections {
                 name: "dot-2";
                 type: RECT;
                 description {
-                    color: LED_COLOR;
+                    color_class: "led-color";
                     rel1 { relative: 0.3 (0.5-DIGIT_W/10); to: "display"; }
                     rel2 { relative: 0.4 (0.5+DIGIT_W/10); to: "display"; }
                 }
             }
 
             BUTTON_COLOR("cancel", "X", 0.0 1.0, "background",
-                         M (-A-M), (A+M) -M, 0 255 0 255);
+                         M (-A-M), (A+M) -M, "led-color");
 
             script {
                 new const parts[4][] = {

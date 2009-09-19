@@ -55,7 +55,7 @@ releasable state).
 Dependencies
 ------------
 
-Ffalarms is written in Vala_ (0.7.3 is known to work).
+Ffalarms is written in Vala_ (0.7.5 is known to work).
 
 Requires:
 
@@ -90,6 +90,9 @@ Features
 
 - May be configured to use any media player, such as MPlayer_, but
   works out of the box with aplay_ from ``alsa-utils-aplay``.
+
+- LED night clock `12/24 hour mode, brightness and color`_ are
+  configurable.
 
 - Adding, listing, and removing alarms is possible from command line
   (see `Command line options`_ below).
@@ -135,9 +138,6 @@ Limitations
 - Currently the list of alarms is not refreshed if the alarms have
   been altered by another instance of ffalarms or the alarm finished.
 
-- Configuration of LED night clock is currently limited to `12/24 hour
-  mode and brightness`_.
-
 
 Configuration
 -------------
@@ -173,15 +173,18 @@ Reference ``%(file)s`` in the player option will be expanded to a
 value of file option with leading tilde (``~``) replaced with the home
 directory and proper shell quoting if needed.
 
-.. _12/24 hour mode and brightness:
+.. _12/24 hour mode, brightness and color:
 
 LED clock by default uses 24 hour format, you can change it to 12 hour
-format by setting ``24hr_format`` to ``false``, you can also change
-brightness of the LED clock (which 33 by default, 100 is maximum), use
-special value of -1 to not change the brightness, for example ::
+format by setting ``24hr_format`` to ``false``.  You can change the
+color by setting ``color`` to ``red, blue, green`` (numbers in range
+0-255).  You can also change brightness of the LED clock (which is 33
+by default, 100 is the maximum), use special value of -1 to not change
+the brightness, for example ::
 
     [ledclock]
     24hr_format=false
+    color = 255, 255, 0
     brightness=-1
 
 

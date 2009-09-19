@@ -390,6 +390,11 @@ class Clock
 	lt.show();
 
 	weak Edje.Object edje = (Edje.Object) lt.edje_get();
+	if (cfg.led_color != null) {
+	    weak int[] c = cfg.led_color;
+	    edje.color_class_set("led-color", c[0], c[1], c[2], 255,
+				 0, 0, 0, 0, 0, 0, 0, 0);
+	}
 	edje.signal_callback_add("mouse,clicked,1", "cancel-button", this.close);
 	edje.signal_emit((cfg.time_24hr_format) ?
 			 "24hr-format" : "12hr-format", "");
@@ -729,6 +734,7 @@ class Config
     public int repeat;
     public int brightness;
     public bool time_24hr_format;
+    public int[] led_color;
 
     public Config()
     {
@@ -751,6 +757,7 @@ class Config
 	    ini.load_from_file(
 		(filename != null) ? filename : expand_home(DEFAULT_CONFIG),
 		KeyFileFlags.NONE);
+	    ini.set_list_separator(',');
 	    alarm_file = expand_home(ini.get_value("alarm", "file"));
 	    player = ini.get_value("alarm", "player");
 	    repeat = (ini.has_key("alarm", "repeat")) ?
@@ -759,6 +766,8 @@ class Config
 		ini.get_boolean("ledclock", "24hr_format") : false;
 	    brightness = (ini.has_key("ledclock", "brightness")) ?
 		ini.get_integer("ledclock", "brightness") : BRIGHTNESS;
+	    if (ini.has_key("ledclock", "color"))
+		led_color = get_color("ledclock", "color");
 	} catch (KeyFileError e) {
 	    throw new MyError.CONFIG(e.message);
 	} catch (FileError e) {
@@ -768,6 +777,23 @@ class Config
 	    else
 		use_defaults();
 	}
+    }
+
+    int[] get_color(string group, string key) throws MyError
+    {
+	int[] color;
+	try {
+	    color = ini.get_integer_list(group, key);
+	} catch (KeyFileError e) {
+	    color = null;
+	}
+	if (color == null || color.length != 3 ||
+	    color[0] < 0 || color[0] > 255 ||
+	    color[1] < 0 || color[1] > 255 ||
+	    color[2] < 0 || color[2] > 255)
+	    throw new MyError.CONFIG("Value \"%s\" could not be interpreted as a color: should match \"0-255, 0-255, 0-255\"."
+				     .printf(ini.get_value(group, key)));
+	return color;
     }
 
     // could be a property if Vala properties would support throws
