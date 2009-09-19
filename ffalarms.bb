@@ -6,7 +6,7 @@ MAINTAINER = "Łukasz Pankowski <lukpank@o2.pl>"
 SECTION = "x11/applications"
 PRIORITY = "optional"
 DEPENDS = "elementary"
-PV = "0.2.3"
+PV = "0.2.4"
 PR = "r0"
 
 SRC_URI = "file://ffalarms-${PV}.tar.gz"

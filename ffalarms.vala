@@ -20,7 +20,7 @@ using Edje;
 using Ecore;
 using Posix;
 
-public const string VERSION = "0.2.3";
+public const string VERSION = "0.2.4";
 public const string EDJE_FILE = "/usr/share/ffalarms/ffalarms.edj";
 public const string ALARM_SH = "/usr/share/ffalarms/alarm.sh";
 public const string ATD_CONTACT_ERR =

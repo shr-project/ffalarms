@@ -258,6 +258,13 @@ TODO
 Versions
 --------
 
+0.2.4 (2009-09-19)
+..................
+
+- now looks like other Elementary programs
+
+- LED clock: add configuration option to change color of LED digits
+
 0.2.3 (2009-06-28)
 ..................
 
