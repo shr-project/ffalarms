@@ -60,7 +60,7 @@ string expand_home(string s)
 time_t next_hm(int hour, int minute)
 {
     var now = time_t();
-    var t = Time.local(now) { hour=hour, minute=minute, second=0 };
+    var t = Time.local(now); t.hour=hour; t.minute=minute; t.second=0;
     var timestamp = t.mktime();
     if (timestamp <= now) {
 	t.day += 1;
