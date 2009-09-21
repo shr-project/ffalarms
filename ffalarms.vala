@@ -143,12 +143,12 @@ public GLib.List<AlarmInfo?> list_alarms(string at_spool) throws MyError, RegexE
 // Return nth tok (indices start with 0) where tokens are delimitied
 // by any number of spaces or null if not found
 
-weak string? nth_token(char[] buf, int nth)
+weak string? nth_token(string buf, int nth)
 {
     bool prev_tok = false, tok;
     int n = -1;
 
-    for (char *p = buf; *p != '\0'; p++) {
+    for (char *p = (char *) buf; *p != '\0'; p++) {
 	tok = *p != ' ';
 	if (tok != prev_tok) {
 	    prev_tok = tok;
@@ -163,7 +163,7 @@ weak string? nth_token(char[] buf, int nth)
 bool kill_running_alarms(string at_spool)
 {
     Regex alarm_cmd;
-    char[] buf = new char[100];
+    string line;
     bool result = false;
     MatchInfo m;
     Posix.Stat st;
@@ -178,9 +178,9 @@ bool kill_running_alarms(string at_spool)
     } catch (RegexError e) {
 	assert_not_reached();
     }
-    while (getline(ref buf, f) != -1) {
-	if (alarm_cmd.match(nth_token(buf, 7), 0, out m)) {
-	    int alarm_pid = nth_token(buf, 1).to_int();
+    while ((line = f.read_line()) != null) {
+	if (alarm_cmd.match(nth_token(line, 7), 0, out m)) {
+	    int alarm_pid = nth_token(line, 1).to_int();
 	    if (stat(Path.build_filename(
 			 at_spool, "x%s.%d".printf(
 			     m.fetch(1), alarm_pid)), out st) == 0)
@@ -641,7 +641,7 @@ class MainWin
 	cfg = new Config();
 	try {
 	    cfg.load_from_file(config_file);
-	} catch (MyError.CONFIG e) {
+	} catch (MyError e) {
 	    message("%s\nDefault configuration will be used."
 		    .printf(e.message), "Error reading config file");
 	    cfg.use_defaults();
@@ -820,7 +820,11 @@ class Alarm {
 
     public Alarm(string play_cmd, int cnt) {
 	this.cnt = cnt;
-	Shell.parse_argv(play_cmd, out play_argv);
+	try {
+	    Shell.parse_argv(play_cmd, out play_argv);
+	} catch (ShellError e) {
+	    die(e.message);
+	}
     }
 
     public void run()

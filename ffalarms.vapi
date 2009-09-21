@@ -21,10 +21,6 @@ public Posix.sighandler_t SIG_IGN;
 [CCode (cheader_filename="stdio.h")]
 public GLib.FileStream? popen(string cmd, string mode);
 
-// getline is GNU extension
-[CCode (cheader_filename="stdio.h")]
-public size_t getline(ref char[] line, GLib.FileStream stream);
-
 [CCode (cheader_filename="stdlib.h")]
 public long strtol(string s, out weak string endptr = null, int _base = 0);
 
