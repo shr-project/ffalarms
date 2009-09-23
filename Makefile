@@ -20,22 +20,27 @@ images/ffalarms.svg
 FIX_CFLAGS = -I.
 
 PREFIX=/usr
-PKG_CFLAGS = `pkg-config --cflags elementary gobject-2.0 dbus-glib-1`
-PKG_LDFLAGS = `pkg-config --libs elementary gobject-2.0 dbus-glib-1`
+PKG = elementary gobject-2.0 dbus-glib-1
+PKG_CFLAGS = `pkg-config --cflags ${PKG}`
+PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 
 # XXX this is local conf
 VALAC=valac
 VAPIDIR = $(HOME)/src/libeflvala/vapi
-VALAFLAGS = --vapidir=$(VAPIDIR)
+VALAFLAGS = --vapidir=${VAPIDIR} \
+	--pkg=elm --pkg=edje --pkg=dbus-glib-1 --pkg posix
 
 SHR=${HOME}/shr/shr-unstable
-
 NATIVE_BIN=$(SHR)/tmp/staging/i686-linux/usr/bin
-CROSS_PKG_CONFIG_PATH=$(SHR)/tmp/staging/armv4t-angstrom-linux-gnueabi/usr/lib/pkgconfig
 CROSS_CC=$(SHR)/tmp/cross/armv4t/bin/arm-angstrom-linux-gnueabi-gcc
-CROSS_CFLAGS = `${NATIVE_BIN}/pkg-config --cflags elementary gobject-2.0 dbus-glib-1`
-CROSS_LDFLAGS = `PKG_CONFIG_PATH=${CROSS_PKG_CONFIG_PATH} pkg-config --libs elementary gobject-2.0 dbus-glib-1`
-#
+CROSS_STAGING_DIR=$(SHR)/tmp/staging/armv4t-angstrom-linux-gnueabi
+CROSS_PKG_CONFIG_PATH=${CROSS_STAGING_DIR}/usr/lib/pkgconfig
+CROSS_PKG_CONFIG=PKG_CONFIG_PATH=${CROSS_PKG_CONFIG_PATH} \
+	PKG_CONFIG_SYSROOT_DIR=${CROSS_STAGING_DIR} \
+	${NATIVE_BIN}/pkg-config
+CROSS_CFLAGS = `${CROSS_PKG_CONFIG} --cflags ${PKG}`
+CROSS_LDFLAGS = `${CROSS_PKG_CONFIG} --libs ${PKG}`
+
 NEO=192.168.0.202
 
 
@@ -50,7 +55,7 @@ ffalarms.o: ffalarms.c
 	${CC} -c ${FIX_CFLAGS} ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi
-	${VALAC} ${VALAFLAGS} --pkg=elm --pkg=edje --pkg=dbus-glib-1 --pkg posix -C $^
+	${VALAC} ${VALAFLAGS} -C $^
 	@touch $@  # seems to be sometimes needed
 
 data/ffalarms.edj: data/ffalarms.edc
@@ -84,11 +89,14 @@ clean:
 armv4t/ffalarms: ffalarms.c
 	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
-.PHONY: run
-run: armv4t/ffalarms data/ffalarms.edj
-	rsync --archive data/ffalarms.edj armv4t/ffalarms ${NEO}:~/tmp/
-	ssh ${NEO} sh -c '". /etc/profile; DISPLAY=:0 ~/tmp/ffalarms --edje ~/tmp/ffalarms.edj"'
+.PHONY: inst run
 
+inst: armv4t/ffalarms data/ffalarms.edj
+	rsync --archive data/ffalarms.edj armv4t/ffalarms ${NEO}:~/tmp/
+
+run: inst
+	ssh ${NEO} sh -c '". /etc/profile; \
+		DISPLAY=:0 ~/tmp/ffalarms --edje ~/tmp/ffalarms.edj"'
 
 PN=ffalarms
 PV=${VERSION}
@@ -97,22 +105,23 @@ IPK=$(TOPDIR)/tmp/deploy/glibc/ipk/armv4t/$(PN)_$(PV)-$(PR)_armv4t.ipk
 
 TOPDIR=~/shr/shr-unstable
 RECIPE_DIR=~/shr/local/recipes
+RECIPE=${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb
 
 .PHONY: ipk ipk-fast ipk-info ipk-inst rebuild reinstall tags
 
 # STRANGE: somehow does not work with dash, I went back to bash
 ipk: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
-	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
+	sed s/"r0"/"$(PR)"/ ffalarms.bb > ${RECIPE}
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
 	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake ffalarms-${PV}
 
 ipk-fast: dist
 	mkdir -p $(RECIPE_DIR)/ffalarms
-	sed s/"r0"/"$(PR)"/ ffalarms.bb > $(RECIPE_DIR)/ffalarms/$(PN)_$(PV).bb
+	sed s/"r0"/"$(PR)"/ ffalarms.bb > ${RECIPE}
 	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
 	cd ${TOPDIR} && . ${TOPDIR}/setup-env && \
-		bitbake -b ${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb
+		bitbake -c package_write -b ${RECIPE}
 
 ipk-info:
 	dpkg -I $(IPK)
@@ -127,8 +136,7 @@ full-do-%:
 	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* ffalarms-${PV}
 
 do-%:
-	cd ${TOPDIR} && . ${TOPDIR}/setup-env && \
-		bitbake -c $* -b ${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb 
+	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* -b ${RECIPE}
 
 rebuild: do-clean ipk-fast
 reinstall: rebuild ipk-inst
