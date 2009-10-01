@@ -26,8 +26,9 @@ public const string ALARM_SH = "/usr/share/ffalarms/alarm.sh";
 public const string ATD_CONTACT_ERR =
     "Could not contact atd daemon, the alarm may not work";
 public const string COMMANDS = "alsactl amixer";
-public const string ALSASTATE =
-    "/usr/share/openmoko/scenarios/stereoout.state";
+public const string[] ALSASTATE_PATH = {
+    "/usr/share/openmoko/scenarios", "/usr/share/shr/scenarii" };
+public const string ALSASTATE = "stereoout.state";
 
 
 public errordomain MyError {
@@ -79,12 +80,20 @@ void set_alarm(time_t timestamp, string alarm_cmd, int repeat,
 {
     string alarm_sh, player = lstrip(alarm_cmd).split(" ", 2)[0];
     Posix.Stat st;
+    string alsa_state = null;
 
     foreach (var cmd in "%s %s".printf(COMMANDS, player).split(" "))
 	if (Environment.find_program_in_path(cmd) == null)
 	    throw new MyError.CONFIG("command %s not found".printf(cmd));
-    if (stat(ALSASTATE, out st) != 0)
-	throw new MyError.CONFIG("%s: file not found".printf(ALSASTATE));
+    foreach (var path in ALSASTATE_PATH) {
+	alsa_state = Path.build_filename(path, ALSASTATE);
+	if (stat(alsa_state, out st) == 0)
+	    break;
+	alsa_state = null;
+    }
+    if (alsa_state == null)
+	throw new MyError.CONFIG(
+	    "%s: could not find alsa state".printf(ALSASTATE));
     var trig = Path.build_filename(at_spool, "trigger");
     if (stat(trig, out st) != 0 || !S_ISFIFO(st.st_mode))
 	throw new MyError.CONFIG(
@@ -93,7 +102,7 @@ void set_alarm(time_t timestamp, string alarm_cmd, int repeat,
 	at_spool,"%ld.ffalarms.%ld".printf(timestamp, getpid()));
     FileUtils.get_contents(ALARM_SH, out alarm_sh);
     FileUtils.set_contents(
-	filename, alarm_sh.printf(Shell.quote(ALSASTATE),
+	filename, alarm_sh.printf(Shell.quote(alsa_state),
 				  repeat, Shell.quote(alarm_cmd)));
     FileUtils.chmod(filename, 0755);
     int fd = open(trig, O_WRONLY | O_NONBLOCK);
