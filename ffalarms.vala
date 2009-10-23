@@ -221,7 +221,7 @@ void delete_alarm(AlarmInfo a, string at_spool) throws MyError
 public void display_alarms_list(string at_spool) throws MyError
 {
     foreach (unowned AlarmInfo? a in list_alarms(at_spool))
-	stdout.printf("%11ld  %s\n", a.timestamp, a.localtime);
+	GLib.stdout.printf("%11ld  %s\n", a.timestamp, a.localtime);
 }
 
 
@@ -875,7 +875,7 @@ class Alarm {
 
     void async_result(GLib.Error e) {
 	if (e != null)
-	    stderr.printf("end call error: %s\n", e.message);
+	    GLib.stderr.printf("end call error: %s\n", e.message);
     }
 
     static void sigterm(int signal)
@@ -969,7 +969,7 @@ class Main {
 	    die(e.message);
 	}
 	if (version) {
-	    stdout.printf("ffalarms-%s\n", VERSION);
+	    GLib.stdout.printf("ffalarms-%s\n", VERSION);
 	    Posix.exit(0);
 	}
 	if (play_cmd != null) {
