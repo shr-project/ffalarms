@@ -1,5 +1,6 @@
 #!/bin/sh
 ##ffalarms##
+%s
 
 ALSASTATE=%s
 REPEAT=%d

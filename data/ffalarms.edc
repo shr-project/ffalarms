@@ -369,6 +369,10 @@ collections {
                      update(get_int(selected));
                      update_hour();
                  });
+            PROG("set-hour", "*", "set-hour",
+                 script { set_hour(atoi(sig)); });
+            PROG("set-minute", "*", "set-minute",
+                 script { set_minute(atoi(sig)); });
         }
 
         script {
@@ -452,6 +456,22 @@ collections {
                           (sel == 0) ? "selected" : "default", 0.0);
                 set_state(PART:"minute-button",
                           (sel == 1) ? "selected" : "default", 0.0);
+            }
+
+            public set_hour(h) {
+                new s[5];
+                set_int(am_pm, h >= 12);
+                set_text(PART:"am-pm", get_int(am_pm) ? "PM" : "AM");
+                set_int(hour, h % 12);
+                snprintf(s, 5, "%d", h);
+                set_text(PART:"hour", s);
+            }
+
+            public set_minute(m) {
+                new s[5];
+                set_int(minute, m);
+                snprintf(s, 5, "%d%d", m / 10, m % 10);
+                set_text(PART:"minute", s);
             }
         }
     }

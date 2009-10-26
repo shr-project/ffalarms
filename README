@@ -55,11 +55,12 @@ releasable state).
 Dependencies
 ------------
 
-Ffalarms is written in Vala_ (0.7.5 is known to work).
+Ffalarms is written in Vala_ (0.7.7 is known to work).
 
 Requires:
 
 - `EFL Vala Bindings`_ (libeflvala)
+- `libical`_
 - atd_ (may be atd-over-fso_ working on top of FSO_ platform)
 - ``alsa-utils-amixer`` ``alsa-utils-alsactl``
   ``openmoko-alsa-scenarios`` ``ttf-dejavu-sans``
@@ -71,6 +72,7 @@ Optional:
 
 .. _Vala: http://live.gnome.org/Vala
 .. _EFL Vala Bindings: http://git.freesmartphone.org/?p=libeflvala.git;a=summary
+.. _libical: http://freeassociation.sourceforge.net
 .. _atd: http://projects.linuxtogo.org/projects/atd/
 .. _atd-over-fso: http://projects.openmoko.org/frs/?group_id=260
 
@@ -87,6 +89,8 @@ Features
 - Best works on distributions featuring Elementary_ and FSO_ (such as
   SHR_).  Earlier versions (up to 0.2.2, written in Python) work on
   `Om 2008.12`_ and SHR_.
+
+- Supports recurring alarms.
 
 - May be configured to use any media player, such as MPlayer_, but
   works out of the box with aplay_ from ``alsa-utils-aplay``.
@@ -122,16 +126,6 @@ Limitations
     side you can set Silent profile for the night if you wish and it
     will not prevent the alarm to wake you up).
 
-- Time selection:
-
-  - There is currently no way to select a date of an alarm, it will be
-    scheduled for today if the given time have not yet passed or for
-    tomorrow otherwise.  This is reasonable default but an option to
-    select a date from a finger friendly calendar would be nice.
-
-  - There is currently no way to schedule periodic alarms, for example
-    every day, or only on Mondays.
-
 - Ffalarms is currently only configurable through a configuration file
   (see Configuration_ below)
 
@@ -155,6 +149,8 @@ is equivalent to ::
     player=aplay -q %(file)s
     file=/usr/share/ffalarms/alarm.wav
     repeat=500
+    volume=60, 100, 105
+    alarm_script=/usr/share/ffalarms/alarm.sh
 
     [ledclock]
     24hr_format=true
@@ -172,6 +168,19 @@ to 1) ::
 Reference ``%(file)s`` in the player option will be expanded to a
 value of file option with leading tilde (``~``) replaced with the home
 directory and proper shell quoting if needed.
+
+By default volume of the alarm starts at 60 and increases up to 100,
+the increase takes 105 seconds.  You can change it by setting
+``volume`` to a similar list of three numbers or a fixed volume
+(single number).  You can use special value of -1 for ffalarms not to
+change the volume.
+
+You can also change ALSA state which is loaded before playing the
+alarm, for example on SHR_ you could use (though on SHR it will work
+out of the box)
+
+    [alarm]
+    alsa_state=/usr/share/shr/scenarii/stereoout.state
 
 .. _12/24 hour mode, brightness and color:
 
@@ -204,6 +213,7 @@ Command line options
       --at-spool=DIR          use DIR as the at spool directory instead of
       -c, --config=FILE       use config file other than ~/.ffalarmsrc
       -s, --set=HH:MM|now     set alarm at given time
+      --summary=STRING        alarm summary (used with --set)
       --del=TIMESTAMP         delete alarm with a given timestamp
       --kill                  kill running alarm
       -l, --list              list scheduled alarms
@@ -238,10 +248,6 @@ edition version 4.3.2 which is licensed under `GNU GPL v2`_.
 TODO
 ----
 
-- add support for repeated alarms (may require to write alarm daemon
-  on top of FSO may be with, optional backward (2008.12) compatible
-  atd backend).
-
 - Should preserve list selection on list update.
 
 - The list would get more readable if the items would be of the form
@@ -257,6 +263,14 @@ TODO
 
 Versions
 --------
+
+0.3 (2009-10-26)
+................
+
+- add support for recurring alarms and chosing alarm date from a
+  calendar
+
+- add configuration option for volume, alarm_script and alsa_state
 
 0.2.4 (2009-09-19)
 ..................
