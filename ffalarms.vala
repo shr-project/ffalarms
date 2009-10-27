@@ -1601,9 +1601,9 @@ public class Config
     public const int BRIGHTNESS = 33;
     public string alsa_state;
     public string alarm_script;
-    public int alarm_volume_initial = 60;
-    public int alarm_volume_final = 100;
-    public int alarm_volume_inc_interval = 105;
+    public int alarm_volume_initial;
+    public int alarm_volume_final;
+    public int alarm_volume_inc_interval;
     string player;
     string alarm_file;
     public int repeat;
@@ -1625,6 +1625,9 @@ public class Config
 	time_24hr_format = true;
 	brightness = BRIGHTNESS;
 	alarm_script = ALARM_SH;
+	alarm_volume_initial = 60;
+	alarm_volume_final = 100;
+	alarm_volume_inc_interval = 105;
     }
 
     public void load_from_file(string? filename) throws MyError
