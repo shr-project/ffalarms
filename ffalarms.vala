@@ -232,6 +232,30 @@ throws MyError, FileError
 }
 
 
+void modify_alarm(time_t timestamp, Config cfg,
+		  string? rrule, string? summary, string uid)
+throws MyError, FileError
+{
+    Component x = list_alarms(cfg);
+    unowned Component c = null;
+    foreach (var c1 in x.begin_component())
+	if (c1.get_uid() == uid) {
+	    c = c1;
+	    break;
+	}
+    if (c == null)
+	throw new MyError.ERR("Could not find alarm with the given uid");
+    c.set_dtstart(time_from_timet_with_zone(timestamp, false, local_tz()));
+    if (rrule != null)
+	c.add_property(new Property.rrule(Recurrence.from_string(rrule)));
+    if (summary != null && !Regex.match_simple("^\\s*$", summary))
+	c.set_summary(summary);
+    delete_scheduled_alarm(c.get_uid(), cfg);
+    write_alarms(x, cfg);
+    schedule_alarms(cfg);
+}
+
+
 struct AlarmInfo
 {
     public time_t timestamp;
@@ -402,21 +426,10 @@ bool kill_running_alarms(string at_spool)
 }
 
 
-/**
- * NOTE: you have to call schedule_alarms after a call (or calls) to
- * delete_alarm
- */
-void delete_alarm(string uid, Config cfg) throws MyError
+void delete_scheduled_alarm(string uid, Config cfg) throws MyError
 {
-    Component alarms = list_alarms(cfg);
-    unowned Component removed = null;
-    foreach (unowned Component c in alarms.begin_component())
-	if (c.get_uid() == uid) {
-	    removed = c;
-	    break;
-	}
     foreach (var a in list_scheduled_alarms(cfg))
-	if (a.uid == removed.get_uid()) {
+	if (a.uid == uid) {
 	    var filename = Path.build_filename(cfg.at_spool, a.filename);
 	    if (unlink(filename) != 0) {
 		Posix.Stat st;
@@ -429,11 +442,24 @@ void delete_alarm(string uid, Config cfg) throws MyError
 		    throw new MyError.ERR("No alarm was running");
 	    }
 	}
-    if (removed != null) {
-	// XXX we should free the component memory
-	alarms.remove_component(removed);
-    }
-    write_alarms(alarms, cfg);
+}
+
+
+/**
+ * NOTE: you have to call schedule_alarms after a call (or calls) to
+ * delete_alarm
+ */
+void delete_alarm(string uid, Config cfg) throws MyError
+{
+    Component alarms = list_alarms(cfg);
+    foreach (unowned Component c in alarms.begin_component())
+	if (c.get_uid() == uid) {
+	    delete_scheduled_alarm(c.get_uid(), cfg);
+	    // XXX libical.vapi: we should free the component memory
+	    alarms.remove_component(c);
+	    write_alarms(alarms, cfg);
+	    break;
+	}
 }
 
 
@@ -721,6 +747,7 @@ class AddAlarm : BaseWin
 				  string? recur, string? summary);
     SetAlarm set_alarm;
     Recurrence recur;
+    string summary;
 
     public void show(Win parent, string edje_file, SetAlarm set_alarm)
     {
@@ -769,6 +796,19 @@ class AddAlarm : BaseWin
 	win.show();
     }
 
+    public void set_data(Component c)
+    {
+	win.title_set("Edit alarm");
+	btns.buttons[0].label_set("Save");
+	this.summary = c.get_summary();
+	var t = c.get_dtstart();
+	date.set_dmy((DateDay)t.day, t.month, (DateMonth)t.year);
+	this.hour = t.hour;
+	this.minute = t.minute;
+	edje.signal_emit("%d".printf(hour), "set-hour");
+	edje.signal_emit("%d".printf(minute), "set-minute");
+    }
+
     void flip_page()
     {
 	if (options == null) {
@@ -802,7 +842,7 @@ class AddAlarm : BaseWin
 
     public void add()
     {
-	string recur_str=null, summary=null;
+	string recur_str=null;
 	if (showing_options)
 	    cl.time_get(out hour, out minute, null);
 	if (options != null) {
@@ -814,7 +854,7 @@ class AddAlarm : BaseWin
 	    }
 	    recur.by_day[(j < 7) ? j : 0] = Recurrence.ARRAY_MAX;
 	    recur_str = recur.as_string(ref recur);
-	    summary = Entry.markup_to_utf8(this.summary.entry_get()).strip();
+	    summary = Entry.markup_to_utf8(this.summary_e.entry_get()).strip();
 	}
 	if (this.hour != -1) {
 	    time_t timestamp;
@@ -840,7 +880,7 @@ class AddAlarm : BaseWin
 
     Scroller options;
     Clock cl;
-    Entry summary;
+    Entry summary_e;
     Hoversel freq;
     /* Hoversel repeat; */
     CheckGroup wd;
@@ -866,15 +906,17 @@ class AddAlarm : BaseWin
 	bx.size_hint_weight_set(1.0, 0.0);
 	bx.show();
 
-	summary = new Entry(win);
-	summary.single_line_set(true);
-	summary.show();
+	summary_e = new Entry(win);
+	summary_e.single_line_set(true);
+	if (summary != null)
+	    this.summary_e.entry_set(Entry.utf8_to_markup(summary));
+	summary_e.show();
 
 	var sc = new Scroller(win);
 	sc.policy_set(ScrollerPolicy.OFF, ScrollerPolicy.OFF);
 	sc.content_min_limit(false, true);
 	sc.size_hint_align_set(-1.0, -1.0);
-	sc.content_set(summary);
+	sc.content_set(summary_e);
 	sc.show();
 
 	bx.pack_end(frame("Summary", sc));
@@ -884,7 +926,10 @@ class AddAlarm : BaseWin
 
 	date_b = new Button(win);
 	date_b.size_hint_align_set(-1.0, -1.0);
-	date_b.label_set("Nearest future date");
+	if (date.valid())
+	    set_date_close_calendar(date);
+	else
+	    date_b.label_set("Nearest future date");
 	date_b.smart_callback_add("clicked", select_date_from_calendar);
 	bx1.pack_end(date_b);
 	date_b.show();
@@ -1293,6 +1338,15 @@ class Alarms
     {
  	return lst.selected_items_get();
     }
+
+    public unowned Component selected_alarm() throws MyError
+    {
+	unowned Eina.List<weak ListItem> sel = lst.selected_items_get();
+	uint n = sel.count();
+        if (n != 1)
+	    throw new MyError.ERR("You must select a single alarm to be edited");
+	return items.lookup(sel.nth(0));
+    }
 }
 
 
@@ -1405,7 +1459,7 @@ class InwinMessageQueue
 class Buttons
 {
     public Box box;
-    Button[] buttons = new Button[3];
+    public Button[] buttons = new Button[3];
     int idx = 0;
     weak Elm.Object parent;
 
@@ -1515,10 +1569,12 @@ class MainWin : BaseWin
 	fr.show();
 
 	btns = new Buttons(win);
-	btns.add("Add", () => { (aa = new AddAlarm()).show(win, edje_file,
-	 						   set_alarm_); });
+	btns.add("Add", () => {
+		edited_alarm_uid = null;
+		(aa = new AddAlarm()).show(win, edje_file, set_alarm_);
+	    });
 	options = new HoverButtons(win);
-	options.add("Edit", () => message("Not implemented", "Edit"));
+	options.add("Edit", edit_alarm);
 	options.add("Delete", start_delete_puzzle);
 	options.hover.target_set(btns.add("Options", options.hover.show));
 	btns.add("Clock", () => {
@@ -1562,18 +1618,17 @@ class MainWin : BaseWin
 
     void set_alarm_(time_t time, string? recur, string? summary)
     {
-	string msg = null;
 	try {
-	    set_alarm(time, cfg, recur, summary);
+	    if (edited_alarm_uid == null)
+		set_alarm(time, cfg, recur, summary);
+	    else
+		modify_alarm(time, cfg, recur, summary, edited_alarm_uid);
 	} catch (MyError e) {
-	    msg = e.message;
+	    message(e.message, "Problem while setting alarm");
 	} catch (FileError e) {
-	    msg = e.message;
+	    message(e.message, "Problem while setting alarm");
 	}
-	if (msg == null)
-	    update_alarms();
-	else
-	    message(msg, "Unable to add alarm");
+	update_alarms();
     }
 
     public void show_delete_puzzle()
@@ -1641,6 +1696,25 @@ class MainWin : BaseWin
         else
             label = "Confirm turning off the running alarm";
 	puz.show(win, edje_file, label, delete_alarms, sel);
+    }
+
+    string edited_alarm_uid;
+    void edit_alarm()
+    {
+	unowned Component c;
+	try {
+	    c = alarms.selected_alarm();
+	    unowned Property p = c.get_first_property(PropertyKind.RRULE);
+	    if (p != null)
+		throw new MyError.ERR(
+		    "Editing of recursive alarms not yet supported");
+	    edited_alarm_uid = c.get_uid();
+	    aa = new AddAlarm();
+	    aa.show(win, edje_file, set_alarm_);
+	    aa.set_data(c);
+	} catch (MyError e) {
+	    message(e.message, "Edit alarm");
+	}
     }
 
     // hack: I recreate all the list as removing from the list
