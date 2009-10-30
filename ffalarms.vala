@@ -1368,7 +1368,7 @@ class Buttons
 	this.parent = parent;
     }
 
-    public void add(string label, Evas.SmartCallback cb)
+    public unowned Button add(string label, Evas.SmartCallback cb)
     {
 	unowned Button b;
 
@@ -1379,13 +1379,35 @@ class Buttons
 	b.size_hint_align_set(-1.0, -1.0);
 	box.pack_end(b);
 	b.show();
+	return b;
+    }
+}
+
+
+class HoverButtons : Buttons
+{
+    public Hover hover;
+
+    public HoverButtons(Elm.Object parent)
+    {
+	base(parent);
+	hover = new Hover(parent);
+	hover.parent_set(parent);
+	box.horizontal_set(false);
+	hover.content_set("top", box);
+    }
+
+    public new unowned Button add(string label, Evas.SmartCallback cb)
+    {
+	unowned Button b = base.add(label, cb);
+	b.smart_callback_add("clicked", hover.hide);
+	return b;
     }
 }
 
 
 class MainWin : BaseWin
 {
-    //   Win win;
     Bg bg;
     Box bx;
     Buttons btns;
@@ -1399,6 +1421,7 @@ class MainWin : BaseWin
     string edje_file;
     string at_spool;
     string config_file;
+    HoverButtons options;
 
     public MainWin(string edje_file, string at_spool, string? config_file)
     {
@@ -1407,11 +1430,17 @@ class MainWin : BaseWin
 	this.config_file = config_file;
     }
 
+    void close()
+    {
+	puz = null; // avoid double memory free (edje swallowed buttons)
+	Elm.exit();
+    }
+
     public void show()
     {
 	win = new Win(null, "main", WinType.BASIC);
 	win.title_set("Alarms");
-	win.smart_callback_add("delete-request", Elm.exit);
+	win.smart_callback_add("delete-request", close);
 
 	bg = new Bg(win);
 	bg.size_hint_weight_set(1.0, 1.0);
@@ -1433,7 +1462,10 @@ class MainWin : BaseWin
 	btns = new Buttons(win);
 	btns.add("Add", () => { (aa = new AddAlarm()).show(win, edje_file,
 	 						   set_alarm_); });
-	btns.add("Delete", start_delete_puzzle);
+	options = new HoverButtons(win);
+	options.add("Edit", () => message("Not implemented", "Edit"));
+	options.add("Delete", start_delete_puzzle);
+	options.hover.target_set(btns.add("Options", options.hover.show));
 	btns.add("Clock", () => {
 		(clock = new LEDClock(cfg)).show(win, edje_file); });
 	bx.pack_end(btns.box);
@@ -1558,6 +1590,7 @@ class MainWin : BaseWin
 
     void message(string msg, string? title=null)
     {
+	this.msg = null;	// fix
 	this.msg = new Message(win, msg, title);
     }
 
