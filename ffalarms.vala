@@ -1274,13 +1274,17 @@ class Alarms
 	}
 	weak ListItem item = null;
 	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
+	var sb = new StringBuilder();
 	while (iter.next(ref item))
 	    try {
 		// XXX delete_alarm could take event as argument
 		delete_alarm(items.lookup(item).get_uid(), cfg);
 	    } catch (MyError e) {
-		GLib.message("delete_alarm: %s", e.message);
+		sb.append(e.message);
+		sb.append_c('\n');
 	    }
+	if (sb.len != 0)
+	    throw new MyError.ERR(sb.str);
 	// XXX would be nice to work from here:
 	// update();
     }
@@ -1302,6 +1306,8 @@ class Message
     Anchorblock ab;
     int fr_num = 0;
     Frame[] fr = new Frame[6];
+    public delegate void Func();
+    Func close_cb;
 
     unowned Frame frame(string style)
     {
@@ -1309,8 +1315,10 @@ class Message
 	return fr[fr_num++];
     }
 
-    public Message(Win win, string msg, string? title=null)
+    public Message(Win win, string msg, string? title=null,
+		   Func? close_cb=null)
     {
+	this.close_cb = close_cb;
 	w = win.inwin_add();
 	bx = new Box(w);
 	bx.scale_set(1.0);
@@ -1339,13 +1347,57 @@ class Message
 	bt = new Button(w);
 	bt.label_set("  Ok  ");
 	bt.scale_set(1.5);
-	bt.smart_callback_add("clicked", () => { this.w = null; });
+	bt.smart_callback_add("clicked", close);
 	bx.pack_end(bt);
 	bx.pack_end(frame("pad_small"));
 	w.inwin_content_set(bx);
 	w.inwin_style_set("minimal_vertical");
 	bt.show();
 	w.inwin_activate();
+    }
+
+    void close() {
+	this.w = null;
+	if (close_cb != null)
+	    close_cb();
+    }
+}
+
+
+class InwinMessageQueue
+{
+    public delegate void MessageFunc(string msg, string? title=null);
+
+    unowned Win win;
+    Message message;
+
+    struct Msg {
+	string msg;
+	string title;
+    }
+    Queue<Msg?> msgs;
+
+    public InwinMessageQueue(Win win)
+    {
+	this.win = win;
+	msgs = new Queue<Msg?>();
+    }
+
+    public void add(string msg, string? title=null)
+    {
+	if (message == null)
+	    message = new Message(win, msg, title, next_message);
+	else
+	    msgs.push_tail(Msg() {msg=msg, title=title});
+    }
+
+    void next_message()
+    {
+	Msg? m = msgs.pop_head();
+	if (m != null)
+	    message = new Message(win, m.msg, m.title, next_message);
+	else
+	    message = null;
     }
 }
 
@@ -1416,7 +1468,8 @@ class MainWin : BaseWin
     AddAlarm aa;
     Puzzle puz;
     Alarms alarms;
-    Message msg;
+    InwinMessageQueue msgs;
+    InwinMessageQueue.MessageFunc message;
     Config cfg;
     string edje_file;
     string at_spool;
@@ -1441,6 +1494,8 @@ class MainWin : BaseWin
 	win = new Win(null, "main", WinType.BASIC);
 	win.title_set("Alarms");
 	win.smart_callback_add("delete-request", close);
+	msgs = new InwinMessageQueue(win);
+	message = msgs.add;
 
 	bg = new Bg(win);
 	bg.size_hint_weight_set(1.0, 1.0);
@@ -1588,12 +1643,6 @@ class MainWin : BaseWin
 	puz.show(win, edje_file, label, delete_alarms, sel);
     }
 
-    void message(string msg, string? title=null)
-    {
-	this.msg = null;	// fix
-	this.msg = new Message(win, msg, title);
-    }
-
     // hack: I recreate all the list as removing from the list
     // segfaults so the list owns the items (XXX weak?)
     // XXX probably free_function="" try
@@ -1603,7 +1652,7 @@ class MainWin : BaseWin
 	try {
 	    alarms.delete_alarms(sel);
 	} catch (MyError e) {
-	    message(e.message);
+	    message(e.message, "Delete alarms");
 	}
 	schedule_alarms_();
 	// XXX dirty update
