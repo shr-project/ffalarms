@@ -272,7 +272,9 @@ Component list_alarms(Config cfg) throws MyError
 	var p = new Parser();
 	p.set_gen_data(f);
 	Component c = p.parse((LineGenFunc) FileStream.gets);
-	if (c.isa() == ComponentKind.XROOT) {
+	if (c == null) {
+	    return new Component(ComponentKind.XROOT);    
+	} else if (c.isa() == ComponentKind.XROOT) {
 	    return c;
 	} else {
 	    Component x = new Component(ComponentKind.XROOT);
