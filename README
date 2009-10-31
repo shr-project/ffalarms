@@ -175,9 +175,16 @@ the increase takes 105 seconds.  You can change it by setting
 (single number).  You can use special value of -1 for ffalarms not to
 change the volume.
 
+For example you could use vibrator to play the alarm
+
+  | [alarm]
+  | repeat=10
+  | player=sh -c 'mdbus -s org.freesmartphone.odeviced /org/freesmartphone/Device/LED/neo1973_vibrator org.freesmartphone.Device.LED.BlinkSeconds 2 100 100; sleep 10'
+  | volume=-1
+
 You can also change ALSA state which is loaded before playing the
 alarm, for example on SHR_ you could use (though on SHR it will work
-out of the box)
+out of the box) ::
 
     [alarm]
     alsa_state=/usr/share/shr/scenarii/stereoout.state
@@ -263,6 +270,17 @@ TODO
 
 Versions
 --------
+
+0.3.1 (2009-10-31)
+..................
+
+- bug fix: handle empty ~/.ffalarms/alarms file
+  (thanks to jeremy jozwik and Vikas Saurabh for discussing the issue
+   on the community mailing list)
+
+- add editing of non recurring alarms
+
+- make puzzle digits twice bigger for without glasses readability
 
 0.3 (2009-10-26)
 ................

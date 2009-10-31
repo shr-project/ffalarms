@@ -1,4 +1,4 @@
-VERSION=0.3
+VERSION=0.3.1
 
 FFALARMS_FILES=\
 COPYING \
@@ -96,10 +96,11 @@ clean:
 	rm -f *.o ffalarms armv4t/ffalarms
 
 
-armv4t/ffalarms: ffalarms-old-libcal.c
+armv4t/ffalarms: armv4t/ffalarms.c
 	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
-ffalarms-old-libcal.c: ffalarms.c
+armv4t/ffalarms.c: ffalarms.c
+	mkdir -p armv4t
 	sed 's:<libical/ical.h>:<ical.h>:' $< > $@
 
 .PHONY: inst run

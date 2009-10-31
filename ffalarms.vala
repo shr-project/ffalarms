@@ -21,7 +21,7 @@ using Ecore;
 using Posix;
 using ICal;
 
-public const string VERSION = "0.3";
+public const string VERSION = "0.3.1";
 public const string EDJE_FILE = "/usr/share/ffalarms/ffalarms.edj";
 public const string ALARM_SH = "/usr/share/ffalarms/alarm.sh";
 public const string ATD_CONTACT_ERR =
