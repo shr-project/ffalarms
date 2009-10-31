@@ -29,6 +29,8 @@
 
 #define PUZZLE_TIMEOUT 5
 #define PUZZLE_INTER_TIMEOUT 1
+#define PUZZLE_TEXT_SIZE 72
+#define PUZZLE_RESET_TEXT_SIZE 90
 
 
 #define PROG(NAME, SIGNAL, SOURCE, REST)                                \
@@ -230,7 +232,7 @@
             text {                                                      \
                 text: TXT;                                              \
                 font: BOLD_FONT;                                        \
-                size: 36;                                               \
+                size: PUZZLE_TEXT_SIZE;                                 \
                 align: 0.5 0.5;                                         \
             }                                                           \
         }                                                               \
@@ -244,7 +246,7 @@
             state: "restart" 0.0;                                       \
             inherit: "default" 0.0;                                     \
             color: 255 0 0 255;                                         \
-            text.size: 60;                                              \
+            text.size: PUZZLE_RESET_TEXT_SIZE;                          \
         }                                                               \
     }
 
