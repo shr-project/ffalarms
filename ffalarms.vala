@@ -1407,7 +1407,7 @@ class Message
 	bx.pack_end(bt);
 	bx.pack_end(frame("pad_small"));
 	w.inwin_content_set(bx);
-	w.inwin_style_set("minimal_vertical");
+	w.style_set("minimal_vertical");
 	bt.show();
 	w.inwin_activate();
     }
