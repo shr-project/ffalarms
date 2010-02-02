@@ -1476,7 +1476,7 @@ class Buttons
 	this.parent = parent;
     }
 
-    public unowned Button add(string label, Evas.SmartCallback cb)
+    public unowned Button add(string label, Evas.Callback cb)
     {
 	unowned Button b;
 
@@ -1505,7 +1505,7 @@ class HoverButtons : Buttons
 	hover.content_set("top", box);
     }
 
-    public new unowned Button add(string label, Evas.SmartCallback cb)
+    public new unowned Button add(string label, Evas.Callback cb)
     {
 	unowned Button b = base.add(label, cb);
 	b.smart_callback_add("clicked", hover.hide);
