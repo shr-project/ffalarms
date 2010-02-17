@@ -2057,7 +2057,7 @@ class Main {
     public static void main(string[] args)
     {
 	Config cfg = null;
-	typeof(Main);	       // just to initialize static fields
+	new Main();	       // just to initialize static fields
 	var oc = new OptionContext(" - finger friendly alarms");
 	oc.add_main_entries(options, null);
 	try {
