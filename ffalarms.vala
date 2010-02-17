@@ -856,7 +856,9 @@ class AddAlarm : BaseWin
 	    }
 	    recur.by_day[(j < 7) ? j : 0] = Recurrence.ARRAY_MAX;
 	    recur_str = recur.as_string(ref recur);
-	    summary = Entry.markup_to_utf8(this.summary_e.entry_get()).strip();
+	    summary = Entry.markup_to_utf8(this.summary_e.entry_get());
+	    if (summary != null)
+		summary = summary.strip();
 	}
 	if (this.hour != -1) {
 	    time_t timestamp;
