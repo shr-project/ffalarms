@@ -912,6 +912,7 @@ class AddAlarm : BaseWin
 	summary_e.single_line_set(true);
 	if (summary != null)
 	    this.summary_e.entry_set(Entry.utf8_to_markup(summary));
+	summary_e.size_hint_weight_set(1.0, 1.0);
 	summary_e.show();
 
 	var sc = new Scroller(win);
