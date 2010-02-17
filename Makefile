@@ -21,10 +21,9 @@ images/ffalarms.svg
 FIX_CFLAGS = -I.
 
 PREFIX=/usr
-PKG = elementary gobject-2.0 dbus-glib-1
-# XXX libical 0.26 does not have pkg file
+PKG = elementary gobject-2.0 dbus-glib-1 libical
 PKG_CFLAGS = `pkg-config --cflags ${PKG}`
-PKG_LDFLAGS = `pkg-config --libs ${PKG}` -lical
+PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 
 # XXX this is local conf
 VALAC=valac
@@ -34,14 +33,14 @@ VALAFLAGS = --vapidir=${VAPIDIR} --vapidir=. \
 
 SHR=${HOME}/shr/shr-unstable
 NATIVE_BIN=$(SHR)/tmp/staging/i686-linux/usr/bin
-CROSS_CC=$(SHR)/tmp/cross/armv4t/bin/arm-angstrom-linux-gnueabi-gcc
-CROSS_STAGING_DIR=$(SHR)/tmp/staging/armv4t-angstrom-linux-gnueabi
+CROSS_CC=$(SHR)/tmp/cross/armv4t/bin/arm-oe-linux-gnueabi-gcc -march=armv4t
+CROSS_STAGING_DIR=$(SHR)/tmp/staging/armv4t-oe-linux-gnueabi
 CROSS_PKG_CONFIG_PATH=${CROSS_STAGING_DIR}/usr/lib/pkgconfig
 CROSS_PKG_CONFIG=PKG_CONFIG_PATH=${CROSS_PKG_CONFIG_PATH} \
 	PKG_CONFIG_SYSROOT_DIR=${CROSS_STAGING_DIR} \
 	${NATIVE_BIN}/pkg-config
 CROSS_CFLAGS = `${CROSS_PKG_CONFIG} --cflags ${PKG}`
-CROSS_LDFLAGS = `${CROSS_PKG_CONFIG} --libs ${PKG}` -lical
+CROSS_LDFLAGS = `${CROSS_PKG_CONFIG} --libs ${PKG}`
 
 NEO=192.168.0.202
 
@@ -96,12 +95,8 @@ clean:
 	rm -f *.o ffalarms armv4t/ffalarms
 
 
-armv4t/ffalarms: armv4t/ffalarms.c
+armv4t/ffalarms: ffalarms.c
 	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
-
-armv4t/ffalarms.c: ffalarms.c
-	mkdir -p armv4t
-	sed 's:<libical/ical.h>:<ical.h>:' $< > $@
 
 .PHONY: inst run
 
