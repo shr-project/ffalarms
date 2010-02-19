@@ -461,8 +461,11 @@ collections {
             }
 
             public set_hour(h) {
-                new s[5];
-                set_int(am_pm, h >= 12);
+                new s[5], pm = (h >= 12);
+                if (get_int(am_pm) != pm) {
+                    set_int(am_pm, pm);
+                    update(get_int(selected));
+                }
                 set_text(PART:"am-pm", get_int(am_pm) ? "PM" : "AM");
                 set_int(hour, h % 12);
                 snprintf(s, 5, "%d", h);
