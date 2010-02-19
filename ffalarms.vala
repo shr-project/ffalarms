@@ -246,8 +246,16 @@ throws MyError, FileError
     if (c == null)
 	throw new MyError.ERR("Could not find alarm with the given uid");
     c.set_dtstart(time_from_timet_with_zone(timestamp, false, local_tz()));
-    if (rrule != null)
-	c.add_property(new Property.rrule(Recurrence.from_string(rrule)));
+    unowned Property p_rrule = c.get_first_property(PropertyKind.RRULE);
+    if (rrule != null) {
+	Recurrence r = Recurrence.from_string(rrule);
+	if (p_rrule != null)
+	    p_rrule.set_rrule(r);
+	else
+	    c.add_property(new Property.rrule(r));
+    } else if (p_rrule != null) {
+	c.remove_property(p_rrule);
+    }
     if (summary != null && !Regex.match_simple("^\\s*$", summary)) {
 	c.set_summary(summary);
     } else {
@@ -754,12 +762,16 @@ class AddAlarm : BaseWin
 				  string? recur, string? summary);
     SetAlarm set_alarm;
     Recurrence recur;
+    bool recur_editable = true;
     string summary;
+
+    public AddAlarm()
+    {
+	recur.clear(ref recur);
+    }
 
     public void show(Win parent, string edje_file, SetAlarm set_alarm)
     {
-	recur.clear(ref recur);
-
 	// NOTE do not use parent to avoid window decorations
 	win = new Win(null, "add", WinType.BASIC);
 	win.title_set("Add alarm");
@@ -814,6 +826,22 @@ class AddAlarm : BaseWin
 	this.minute = t.minute;
 	edje.signal_emit("%d".printf(hour), "set-hour");
 	edje.signal_emit("%d".printf(minute), "set-minute");
+	unowned Property p = c.get_first_property(PropertyKind.RRULE);
+	if (p != null) {
+	    recur = p.get_rrule();
+	    recur_editable = (freq_cb(recur.freq) &&
+			      recur.until.is_null_time() &&
+			      recur.count == 0 &&
+			      recur.interval == 1 &&
+			      recur.by_second[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_minute[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_hour[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_month_day[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_year_day[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_week_no[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_month_day[0] == Recurrence.ARRAY_MAX &&
+			      recur.by_set_pos[0] == Recurrence.ARRAY_MAX);
+	}
     }
 
     void flip_page()
@@ -849,18 +877,18 @@ class AddAlarm : BaseWin
 
     public void add()
     {
-	string recur_str=null;
 	if (showing_options)
 	    cl.time_get(out hour, out minute, null);
 	if (options != null) {
-	    int i = 0, j = 0;
-	    foreach (unowned Check ck in wd.checks) {
-		if (ck.state_get())
-		    recur.by_day[j++] = recur_weekdays[i];
-		i++;
+	    if (recur_editable) {
+		int i = 0, j = 0;
+		foreach (unowned Check ck in wd.checks) {
+		    if (ck.state_get())
+			recur.by_day[j++] = recur_weekdays[i];
+		    i++;
+		}
+		recur.by_day[(j < 7) ? j : 0] = Recurrence.ARRAY_MAX;
 	    }
-	    recur.by_day[(j < 7) ? j : 0] = Recurrence.ARRAY_MAX;
-	    recur_str = recur.as_string(ref recur);
 	    summary = Entry.markup_to_utf8(this.summary_e.entry_get());
 	    if (summary != null)
 		summary = summary.strip();
@@ -877,7 +905,7 @@ class AddAlarm : BaseWin
 	    } else {
 		timestamp = next_hm(this.hour, this.minute);
 	    }
-	    this.set_alarm(timestamp, recur_str, summary);
+	    this.set_alarm(timestamp, recur.as_string(ref recur), summary);
 	    close();
 	}
     }
@@ -953,36 +981,42 @@ class AddAlarm : BaseWin
 	bx1.show();
 	swallow((owned) bx1);
 
-	freq = new Hoversel(win);
-	freq.hover_parent_set(win);
-	freq.label_set("Once");
-	freq.item_add("Once", null, IconType.NONE,
-		      () => freq_cb("Once", RecurrenceFrequency.NO));
-	freq.item_add("Daily", null, IconType.NONE,
-		      () => freq_cb("Daily", RecurrenceFrequency.DAILY));
-	freq.item_add("Weekly", null, IconType.NONE,
-		      () => freq_cb("Weekly", RecurrenceFrequency.WEEKLY));
-	freq.item_add("Monthly", null, IconType.NONE,
-		      () => freq_cb("Monthly", RecurrenceFrequency.MONTHLY));
-	freq.item_add("Yearly", null, IconType.NONE,
-		      () => freq_cb("Yearly", RecurrenceFrequency.YEARLY));
-	bx.pack_end(frame("Frequency", freq));
-	freq.show();
+	if (recur_editable) {
+	    freq = new Hoversel(win);
+	    freq.hover_parent_set(win);
+	    freq_cb(recur.freq);
+	    freq.item_add("Once", null, IconType.NONE,
+			  () => freq_cb(RecurrenceFrequency.NO));
+	    freq.item_add("Daily", null, IconType.NONE,
+			  () => freq_cb(RecurrenceFrequency.DAILY));
+	    freq.item_add("Weekly", null, IconType.NONE,
+			  () => freq_cb(RecurrenceFrequency.WEEKLY));
+	    freq.item_add("Monthly", null, IconType.NONE,
+			  () => freq_cb(RecurrenceFrequency.MONTHLY));
+	    freq.item_add("Yearly", null, IconType.NONE,
+			  () => freq_cb(RecurrenceFrequency.YEARLY));
+	    bx.pack_end(frame("Frequency", freq));
+	    freq.show();
 
-#if WORK_IN_PROGRESS
-	repeat = new Hoversel(win);
-	repeat.hover_parent_set(win);
-	repeat.label_set("Forever");
-	repeat.item_add("Forever", null, IconType.NONE, null);
-	repeat.item_add("Until date", null, IconType.NONE, null);
-	repeat.item_add("Count times", null, IconType.NONE, null);
-	repeat.size_hint_align_set(-1.0, 0.1);
-	repeat.show();
-	bx.pack_end(frame("Repeat", repeat));
-#endif
-
-	wd = new CheckGroup(win, weekdays);
-	bx.pack_end(frame("Weekdays", wd.bx));
+	    wd = new CheckGroup(win, weekdays);
+	    if (recur.by_day[0] != Recurrence.ARRAY_MAX) {
+		foreach (unowned Check ck in wd.checks)
+		    ck.state_set(false);
+		for (int i = 0; i < Recurrence.ARRAY_MAX &&
+			 recur.by_day[i] != Recurrence.ARRAY_MAX; i++)
+		    for (int j = 0; j < recur_weekdays.length; j++)
+			if (recur.by_day[i] == recur_weekdays[j]) {
+			    wd.checks[j].state_set(true);
+			    break;
+			}
+	    }
+	    bx.pack_end(frame("Weekdays", wd.bx));
+	} else {
+	    var lb = new Label(win);
+	    lb.label_set(Recurrence.as_string(ref recur));
+	    bx.pack_end(frame("Recurrence", lb));
+	    swallow((owned) lb);
+	}
 
 	sc = new Scroller(win);
 	sc.content_min_limit(true, false);
@@ -1015,10 +1049,33 @@ class AddAlarm : BaseWin
 	cal = null;
     }
 
-    void freq_cb(string name, RecurrenceFrequency freq)
+    bool freq_cb(RecurrenceFrequency freq)
     {
-	this.freq.label_set(name);
+	unowned string label;
+
+	switch (freq) {
+	case RecurrenceFrequency.NO:
+	    label = "Once";
+	    break;
+	case RecurrenceFrequency.DAILY:
+	    label = "Daily";
+	    break;
+	case RecurrenceFrequency.WEEKLY:
+	    label = "Weekly";
+	    break;
+	case RecurrenceFrequency.MONTHLY:
+	    label = "Monthly";
+	    break;
+	case RecurrenceFrequency.YEARLY:
+	    label = "Yearly";
+	    break;
+	default:
+	    return false;
+	}
 	recur.freq = freq;
+	if (this.freq != null)
+	    this.freq.label_set(label);
+	return true;
     }
 }
 
@@ -1714,10 +1771,6 @@ class MainWin : BaseWin
 	unowned Component c;
 	try {
 	    c = alarms.selected_alarm();
-	    unowned Property p = c.get_first_property(PropertyKind.RRULE);
-	    if (p != null)
-		throw new MyError.ERR(
-		    "Editing of recursive alarms not yet supported");
 	    edited_alarm_uid = c.get_uid();
 	    aa = new AddAlarm();
 	    aa.show(win, edje_file, set_alarm_);
