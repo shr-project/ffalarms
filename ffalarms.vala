@@ -248,8 +248,13 @@ throws MyError, FileError
     c.set_dtstart(time_from_timet_with_zone(timestamp, false, local_tz()));
     if (rrule != null)
 	c.add_property(new Property.rrule(Recurrence.from_string(rrule)));
-    if (summary != null && !Regex.match_simple("^\\s*$", summary))
+    if (summary != null && !Regex.match_simple("^\\s*$", summary)) {
 	c.set_summary(summary);
+    } else {
+	unowned Property p = c.get_first_property(PropertyKind.SUMMARY);
+	if (p != null)
+	    c.remove_property(p);
+    }
     delete_scheduled_alarm(c.get_uid(), cfg);
     write_alarms(x, cfg);
     schedule_alarms(cfg);
