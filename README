@@ -32,6 +32,16 @@ Author
 Łukasz Pankowski <lukpank@o2.pl>
 
 
+Project home page
+-----------------
+
+http://ffalarms.projects.openmoko.org/
+
+The source code is hosted in a git repository at
+
+http://git.shr-project.org/git/?p=ffalarms.git;a=summary
+
+
 Inspirations
 ------------
 
@@ -271,12 +281,21 @@ TODO
 Versions
 --------
 
+0.3.2 (2010-02-20)
+..................
+
+- add editing of recurring alarms
+
+- clicking anywhere inside summary box activates it (closes: #300)
+
+- compiles with current libeflvala (a18c70a, 2010-01-26)
+
 0.3.1 (2009-10-31)
 ..................
 
 - bug fix: handle empty ~/.ffalarms/alarms file
   (thanks to jeremy jozwik and Vikas Saurabh for discussing the issue
-   on the community mailing list)
+  on the community mailing list)
 
 - add editing of non recurring alarms
 
