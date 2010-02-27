@@ -1424,7 +1424,7 @@ class Message
     Box bx;
     Box hbx;
     Button bt;
-    Anchorblock ab;
+    Label lb;
     int fr_num = 0;
     Frame[] fr = new Frame[6];
     public delegate void Func();
@@ -1455,12 +1455,13 @@ class Message
 	hbx.horizontal_set(true);
 	hbx.size_hint_align_set(-1.0, 0.5); // fill horizontally
  	hbx.pack_end(frame("pad_small"));
-	ab = new Anchorblock(w);
-	ab.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
-	ab.size_hint_align_set(-1.0, 0.5); // fill horizontally
-	ab.size_hint_weight_set(1.0, 1.0); // expand
-	ab.show();
- 	hbx.pack_end(ab);
+	lb = new Label(w);
+	lb.line_wrap_set(true);
+	lb.label_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
+	lb.size_hint_align_set(-1.0, 0.5); // fill horizontally
+	lb.size_hint_weight_set(1.0, 1.0); // expand
+	lb.show();
+ 	hbx.pack_end(lb);
  	hbx.pack_end(frame("pad_small"));
 	hbx.show();
 	bx.pack_end(hbx);
