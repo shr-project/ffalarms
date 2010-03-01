@@ -1154,7 +1154,7 @@ class Puzzle : BaseWin
 	var sb = new StringBuilder();
 	weak ListItem item = null;
 	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
-	while (iter.next(ref item))
+	while (iter.get_next(ref item))
 	    sb.append_printf("%s<br>", item.label_get());
 	lb.label_set(sb.str);
 	lb.size_hint_weight_set(1.0, 1.0);
@@ -1387,7 +1387,7 @@ class Alarms
 	weak ListItem item = null;
 	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
 	var sb = new StringBuilder();
-	while (iter.next(ref item))
+	while (iter.get_next(ref item))
 	    try {
 		// XXX delete_alarm could take event as argument
 		delete_alarm(items.lookup(item).get_uid(), cfg);
