@@ -1953,28 +1953,20 @@ class Alarm {
     GLib.MainLoop ml;
     static pid_t player_pid = 0;
 
-    public Alarm(string play_cmd, int cnt) {
+    public Alarm(string play_cmd, int cnt, Config cfg) {
 	this.cnt = cnt;
 	try {
 	    Shell.parse_argv(play_cmd, out play_argv);
 	} catch (ShellError e) {
 	    die(e.message);
 	}
+	this.cfg = cfg;
     }
 
     public void run()
     {
 	int stdin;
 
-	// XXX at_spool should be somehow given as argument
-	cfg = new Config("/var/spool/at");
-	try {
-	    cfg.load_from_file(null); // XXX propagate filename
-	} catch (MyError e) {
-	    warning("Error reading config file: %s\nDefault configuration will be used."
-		    .printf(e.message));
-	    cfg.use_defaults();
-	}
 	try {
 	    schedule_alarms(cfg);
 	} catch (GLib.Error e) {
@@ -2132,8 +2124,14 @@ class Main {
 	}
 	if (play_cmd != null) {
 	    int cnt = (args[1] != null) ? args[1].to_int() : 1;
-	    var a = new Alarm(play_cmd, (cnt > 0) ? cnt : 1);
-	    a.run();
+	    cfg = new Config(at_spool);
+	    try {
+		cfg.load_from_file(config_file);
+	    } catch (MyError e) {
+		warning("Error reading config file: %s. Default configuration will be used.".printf(e.message));
+		cfg.use_defaults();
+	    }
+	    new Alarm(play_cmd, (cnt > 0) ? cnt : 1, cfg).run();
 	    return;
 	}
 	if (alarms != null || deletes != null || list) {
