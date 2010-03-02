@@ -15,7 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-[CCode (cheader_filename="ffalarms.h")] // dirty fix
 public Posix.sighandler_t SIG_IGN;
 
 [CCode (cheader_filename="stdio.h")]

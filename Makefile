@@ -8,7 +8,6 @@ ffalarms.bb \
 ffalarms.vala \
 ffalarms.vapi \
 ffalarms.c \
-ffalarms.h \
 libical.vapi \
 data/ffalarms.edc \
 data/alarm.sh \
@@ -17,8 +16,6 @@ data/ffalarms.desktop \
 images/circle.png \
 images/ffalarms.png \
 images/ffalarms.svg
-
-FIX_CFLAGS = -I.
 
 PREFIX=/usr
 PKG = elementary gobject-2.0 dbus-glib-1 libical
@@ -59,7 +56,7 @@ ffalarms: ffalarms.o
 	${CC} ${LDFLAGS} ${PKG_LDFLAGS} $< -o $@
 
 ffalarms.o: ffalarms.c
-	${CC} -c ${FIX_CFLAGS} ${CFLAGS} ${PKG_CFLAGS} $< -o $@
+	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi libical.vapi
 	${VALAC} ${VALAFLAGS} -C $< ffalarms.vapi
@@ -96,7 +93,7 @@ clean:
 
 
 armv4t/ffalarms: ffalarms.c
-	${CROSS_CC} ${FIX_CFLAGS} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
+	${CROSS_CC} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
 
 .PHONY: inst run
 
