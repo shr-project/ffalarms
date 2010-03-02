@@ -1925,8 +1925,7 @@ public class Config
 	    color[0] < 0 || color[0] > 255 ||
 	    color[1] < 0 || color[1] > 255 ||
 	    color[2] < 0 || color[2] > 255)
-	    throw new MyError.CONFIG("Value \"%s\" could not be interpreted as a color: should match \"0-255, 0-255, 0-255\"."
-				     .printf(ini.get_value(group, key)));
+	    throw new MyError.CONFIG("Key file contains key '%s' in group '%s' which has value that does not match \"0-255, 0-255, 0-255\"", key, group);
 	return color;
     }
 
