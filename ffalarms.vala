@@ -155,7 +155,7 @@ unowned TimeZone local_tz()
 	    // XXX quick hack: the format is more complicated
 	    FileUtils.get_contents("/etc/timezone", out s);
     } catch (FileError e) {
-    	s = "UTC";
+	s = "UTC";
     }
     return TimeZone.get_builtin_timezone(s.strip());
 }
@@ -286,7 +286,7 @@ Component list_alarms(Config cfg) throws MyError
 	p.set_gen_data(f);
 	Component c = p.parse((LineGenFunc) FileStream.gets);
 	if (c == null) {
-	    return new Component(ComponentKind.XROOT);    
+	    return new Component(ComponentKind.XROOT);
 	} else if (c.isa() == ComponentKind.XROOT) {
 	    return c;
 	} else {
@@ -560,7 +560,7 @@ class BaseWin : Base
 
     protected unowned Frame frame(string label, Elm.Object? content)
     {
-    	var fr = new Frame(win);
+	var fr = new Frame(win);
 	unowned Frame result = fr;
 	fr.label_set(label);
 	fr.content_set(content);
@@ -572,7 +572,7 @@ class BaseWin : Base
 
     protected unowned Frame pad(string style)
     {
-    	var fr = new Frame(win);
+	var fr = new Frame(win);
 	unowned Frame result = fr;
 	fr.style_set(style);
 	fr.size_hint_align_set(-1.0, 0.0);
@@ -614,20 +614,20 @@ class Calendar : Base
 		      (DateYear)(1900 + tm.year));
 
 	cur_month = new Label(parent);
-       	tb.pack(cur_month, 1, 0, 5, 1);
+	tb.pack(cur_month, 1, 0, 5, 1);
 	cur_month.show();
 
 	var b = new Button(parent);
 	b.label_set("<");
 	b.smart_callback_add("clicked", prev_month);
-       	tb.pack(b, 0, 0, 1, 1);
+	tb.pack(b, 0, 0, 1, 1);
 	b.show();
 	swallow((owned) b);
 
 	b = new Button(parent);
 	b.label_set(">");
 	b.smart_callback_add("clicked", next_month);
-       	tb.pack(b, 6, 0, 1, 1);
+	tb.pack(b, 6, 0, 1, 1);
 	b.show();
 	swallow((owned) b);
 
@@ -1340,7 +1340,7 @@ class LEDClock
 	if (value == -1 && brightness == -1)
 	    return;
 	try {
- 	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
 	    dynamic DBus.Object o = bus.get_object(
 		"org.freesmartphone.odeviced", "/org/freesmartphone/Device/Display/0",
 		"org.freesmartphone.Device.Display");
@@ -1403,7 +1403,7 @@ class Alarms
 
     public unowned Eina.List<weak ListItem> get_selection()
     {
- 	return lst.selected_items_get();
+	return lst.selected_items_get();
     }
 
     public unowned Component selected_alarm() throws MyError
@@ -1454,15 +1454,15 @@ class Message
 	hbx = new Box(w);
 	hbx.horizontal_set(true);
 	hbx.size_hint_align_set(-1.0, 0.5); // fill horizontally
- 	hbx.pack_end(frame("pad_small"));
+	hbx.pack_end(frame("pad_small"));
 	lb = new Label(w);
 	lb.line_wrap_set(true);
 	lb.label_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	lb.size_hint_align_set(-1.0, 0.5); // fill horizontally
 	lb.size_hint_weight_set(1.0, 1.0); // expand
 	lb.show();
- 	hbx.pack_end(lb);
- 	hbx.pack_end(frame("pad_small"));
+	hbx.pack_end(lb);
+	hbx.pack_end(frame("pad_small"));
 	hbx.show();
 	bx.pack_end(hbx);
 	bx.pack_end(frame("pad_medium"));
@@ -1633,7 +1633,7 @@ class MainWin : BaseWin
 	fr.size_hint_weight_set(0.0, 1.0);
 	fr.size_hint_align_set(-1.0, -1.0);
 	fr.style_set("outdent_top");
-       	bx.pack_end(fr);
+	bx.pack_end(fr);
 	fr.show();
 
 	btns = new Buttons(win);
@@ -1748,7 +1748,7 @@ class MainWin : BaseWin
 	acknowledge_alarm(puz.uid, puz.time, cfg);
 	schedule_alarms(cfg);
 	ack_item = null;
-       	ack_sel = null;
+	ack_sel = null;
     }
 
     void start_delete_puzzle()
@@ -1806,7 +1806,7 @@ class MainWin : BaseWin
 	    message(e.message);
 	} catch (GLib.Error e) {
 	    message(e.message);
-	}		
+	}
 	alarms.lst.show();
 	fr.content_set(alarms.lst);
     }
