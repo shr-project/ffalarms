@@ -161,21 +161,6 @@ unowned TimeZone local_tz()
 }
 
 
-ICal.Time time_from_timet_with_zone(time_t t, bool is_date, TimeZone zone)
-{
-    if (ICal.VERSION == "0.26") {
-	// old version on OpenEmbedded
-	ICal.Time result = ICal.Time.from_timet_with_zone(
-	    t, is_date, TimeZone.get_utc_timezone()).convert_to_zone(zone);
-	// floating time
-	result.set_timezone(ref result, null);
-	return result;
-    } else {
-	return ICal.Time.from_timet_with_zone(t, is_date, zone);
-    }
-}
-
-
 // XXX may return time_t
 ICal.Time next_alarm_as_utc(Component c)
 {
@@ -183,7 +168,7 @@ ICal.Time next_alarm_as_utc(Component c)
     unowned TimeZone utc = TimeZone.get_utc_timezone();
     var t = time_t();
     var utc_now = ICal.Time.from_timet_with_zone(t, false, utc);
-    ICal.Time tz_now = time_from_timet_with_zone(t, false, tz);
+    ICal.Time tz_now = ICal.Time.from_timet_with_zone(t, false, tz);
     ICal.Time next = ICal.Time.null_time(); // silent Vala false positive error
     unowned Property p = c.get_first_property(PropertyKind.RRULE);
     if  (p == null) {
@@ -219,7 +204,7 @@ throws MyError, FileError
 {
     Component x = list_alarms(cfg);
     Component c = new Component.vevent();
-    c.set_dtstart(time_from_timet_with_zone(timestamp, false, local_tz()));
+    c.set_dtstart(ICal.Time.from_timet_with_zone(timestamp, false, local_tz()));
     c.set_uid("%08x.%08x@%s".printf((uint) time_t(), Random.next_int(),
 				    Environment.get_host_name()));
     if (rrule != null)
@@ -245,7 +230,7 @@ throws MyError, FileError
 	}
     if (c == null)
 	throw new MyError.ERR("Could not find alarm with the given uid");
-    c.set_dtstart(time_from_timet_with_zone(timestamp, false, local_tz()));
+    c.set_dtstart(ICal.Time.from_timet_with_zone(timestamp, false, local_tz()));
     unowned Property p_rrule = c.get_first_property(PropertyKind.RRULE);
     if (rrule != null) {
 	Recurrence r = Recurrence.from_string(rrule);
@@ -493,7 +478,7 @@ void acknowledge_alarm(string uid, time_t t, Config cfg) throws MyError
 	    } else if (t != 0) {
 		// we hold newest acknowlendged instance of the
 		// recurring alarm in the RECURRENCE-ID
-		var time = time_from_timet_with_zone(t, false, local_tz());
+		var time = ICal.Time.from_timet_with_zone(t, false, local_tz());
 		var prev = c.get_recurrenceid();
 		if (prev.is_null_time() || time.compare(prev) > 0) {
 		    c.set_recurrenceid(time);
@@ -1728,7 +1713,7 @@ class MainWin : BaseWin
 		if (c.get_uid() == puz.uid) {
 		    win = new Win(null, "fake", WinType.BASIC);
 		    ack_lst = new Elm.List(win);
-		    var next = time_from_timet_with_zone(
+		    var next = ICal.Time.from_timet_with_zone(
 			puz.time, false, TimeZone.get_utc_timezone());
 		    var a = new NextAlarm() { comp=c, next=next };
 		    ack_item = ack_lst.append(a.to_string(": "),

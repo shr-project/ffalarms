@@ -46,14 +46,14 @@ all: ffalarms data/ffalarms.edj
 
 .PHONY: all configure dist install clean
 
-# XXX temporary fix for old libical 0.27 in openembedded
-configure:
-	echo '#include <libical/ical.h>\nmain () {}' > tmp_test1.c
-	$(CC) $(CFLAGS) tmp_test1.c -o /dev/null || \
-	sed --in-place 's:<libical/ical.h>:<ical.h>:' ffalarms.c
+configure: .configured
 
-ffalarms: ffalarms.o
-	${CC} ${LDFLAGS} ${PKG_LDFLAGS} $< -o $@
+.configured:
+	pkg-config --atleast-version=0.44 libical
+	touch .configured
+
+ffalarms: .configured ffalarms.o
+	${CC} ${LDFLAGS} ${PKG_LDFLAGS} ffalarms.o -o $@
 
 ffalarms.o: ffalarms.c
 	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
@@ -75,7 +75,7 @@ ffalarms-${VERSION}.tar.gz: ${FFALARMS_FILES}
 	rm -r ffalarms-${VERSION}
 
 install: all
-	install -d ${DESTDIR}${PREFIX}/bin 
+	install -d ${DESTDIR}${PREFIX}/bin
 	install -m 755  ffalarms ${DESTDIR}${PREFIX}/bin
 	install -d ${DESTDIR}${PREFIX}/share/ffalarms
 	install -m 644 data/alarm.wav ${DESTDIR}${PREFIX}/share/ffalarms
