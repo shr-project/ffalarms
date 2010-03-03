@@ -16,7 +16,6 @@
  */
 
 using Elm;
-using Edje;
 using Ecore;
 using Posix;
 using ICal;
@@ -377,7 +376,7 @@ throws MyError
 // Return nth tok (indices start with 0) where tokens are delimitied
 // by any number of spaces or null if not found
 
-weak string? nth_token(string buf, int nth)
+unowned string? nth_token(string buf, int nth)
 {
     bool prev_tok = false, tok;
     int n = -1;
@@ -739,7 +738,7 @@ class AddAlarm : BaseWin
     Pager pager;
     Buttons btns;
     Layout lt;
-    weak Edje.Object edje;
+    unowned Edje.Object edje;
     int hour = -1;
     int minute = 0;
     bool showing_options = false;
@@ -1074,14 +1073,14 @@ class Puzzle : BaseWin
     Layout lt;
     Toggle delete_tg;
     Buttons btns;
-    public delegate void DeleteAlarms(Eina.List<weak ListItem> sel);
+    public delegate void DeleteAlarms(Eina.List<ListItem> sel);
     DeleteAlarms delete_alarms;
-    weak Eina.List<weak ListItem> sel;
+    unowned Eina.List<ListItem> sel;
     public bool exit_when_closed;
 
     public void show(Win? parent, string edje_file,
 		     string label, DeleteAlarms delete_alarms,
-		     Eina.List<weak ListItem>? sel)
+		     Eina.List<ListItem>? sel)
     {
 	this.delete_alarms = delete_alarms;
 	this.sel = sel;
@@ -1104,7 +1103,7 @@ class Puzzle : BaseWin
     }
 
     public void show_ack(string label, DeleteAlarms delete_alarms,
-			 Eina.List<weak ListItem>? sel)
+			 Eina.List<ListItem>? sel)
     {
 	this.delete_alarms = delete_alarms;
 	this.sel = sel;
@@ -1137,8 +1136,8 @@ class Puzzle : BaseWin
 	bx1.size_hint_weight_set(1.0, 1.0);
 	lb = new Label(win);
 	var sb = new StringBuilder();
-	weak ListItem item = null;
-	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
+	unowned ListItem item = null;
+	Eina.Iterator<unowned ListItem> iter = sel.iterator_new();
 	while (iter.get_next(ref item))
 	    sb.append_printf("%s<br>", item.label_get());
 	lb.label_set(sb.str);
@@ -1236,7 +1235,7 @@ class Puzzle : BaseWin
 	win.resize_object_add(lt);
 	lt.show();
 
-	weak Edje.Object edje = (Edje.Object) lt.edje_get();
+	unowned Edje.Object edje = (Edje.Object) lt.edje_get();
 	edje.signal_callback_add("solved", "", this.solved);
 	edje.part_swallow("frame", bx);
 	for (int i = 0; i < 4; i++)
@@ -1277,7 +1276,7 @@ class LEDClock
     Win win;
     Layout lt;
     int brightness = -1;
-    weak Config cfg;
+    unowned Config cfg;
 
     public LEDClock(Config cfg)
     {
@@ -1297,9 +1296,9 @@ class LEDClock
 	win.resize_object_add(lt);
 	lt.show();
 
-	weak Edje.Object edje = (Edje.Object) lt.edje_get();
+	unowned Edje.Object edje = (Edje.Object) lt.edje_get();
 	if (cfg.led_color != null) {
-	    weak int[] c = cfg.led_color;
+	    unowned int[] c = cfg.led_color;
 	    edje.color_class_set("led-color", c[0], c[1], c[2], 255,
 				 0, 0, 0, 0, 0, 0, 0, 0);
 	}
@@ -1369,8 +1368,8 @@ class Alarms
 	    kill_running_alarms(cfg.at_spool);
 	    return;
 	}
-	weak ListItem item = null;
-	Eina.Iterator<weak ListItem> iter = sel.iterator_new();
+	unowned ListItem item = null;
+	Eina.Iterator<unowned ListItem> iter = sel.iterator_new();
 	var sb = new StringBuilder();
 	while (iter.get_next(ref item))
 	    try {
@@ -1386,14 +1385,14 @@ class Alarms
 	// update();
     }
 
-    public unowned Eina.List<weak ListItem> get_selection()
+    public unowned Eina.List<ListItem> get_selection()
     {
 	return lst.selected_items_get();
     }
 
     public unowned Component selected_alarm() throws MyError
     {
-	unowned Eina.List<weak ListItem> sel = lst.selected_items_get();
+	unowned Eina.List<ListItem> sel = lst.selected_items_get();
 	uint n = sel.count();
         if (n != 1)
 	    throw new MyError.ERR("You must select a single alarm to be edited");
@@ -1514,7 +1513,7 @@ class Buttons
     public Box box;
     public Button[] buttons = new Button[3];
     int idx = 0;
-    weak Elm.Object parent;
+    unowned Elm.Object parent;
 
     public Buttons(Elm.Object parent)
     {
@@ -1700,7 +1699,7 @@ class MainWin : BaseWin
 		 kill_running_alarms_maybe_ack, null);
     }
 
-    Eina.List<weak ListItem> ack_sel;
+    Eina.List<unowned ListItem> ack_sel;
     Elm.List ack_lst;
     ListItem ack_item;
 
@@ -1728,7 +1727,7 @@ class MainWin : BaseWin
 	}
     }
 
-    void acknowledge(Eina.List<weak ListItem> sel)
+    void acknowledge(Eina.List<ListItem> sel)
     {
 	acknowledge_alarm(puz.uid, puz.time, cfg);
 	schedule_alarms(cfg);
@@ -1739,7 +1738,7 @@ class MainWin : BaseWin
     void start_delete_puzzle()
     {
 	puz = new Puzzle();
-	unowned Eina.List<weak ListItem> sel = alarms.get_selection();
+	unowned Eina.List<ListItem> sel = alarms.get_selection();
 	uint n = sel.count();
 	string label;
         if (n == 1)
@@ -1767,7 +1766,7 @@ class MainWin : BaseWin
     }
 
     // hack: I recreate all the list as removing from the list
-    // segfaults so the list owns the items (XXX weak?)
+    // segfaults so the list owns the items (XXX unowned?)
     // XXX probably free_function="" try
 
     public void delete_alarms(Eina.List<ListItem>? sel)
@@ -2129,7 +2128,7 @@ class Main {
 	}
 	if (alarms != null) {
 	    try {
-		foreach (weak string? s in alarms) {
+		foreach (unowned string? s in alarms) {
 		    time_t t;
 		    string s2, rrule = null;
 		    foreach (var r in recurrence_types)
