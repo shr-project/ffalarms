@@ -1842,10 +1842,15 @@ public class Config
 		(filename != null) ? filename : expand_home(DEFAULT_CONFIG),
 		KeyFileFlags.NONE);
 	    ini.set_list_separator(',');
-	    alarm_file = expand_home(ini.get_value("alarm", "file"));
-	    player = ini.get_value("alarm", "player");
-	    repeat = (ini.has_key("alarm", "repeat")) ?
-		ini.get_integer("alarm", "repeat") : 1;
+	    if (ini.has_key("alarm", "file"))
+		alarm_file = expand_home(ini.get_value("alarm", "file"));
+	    if (ini.has_key("alarm", "player"))
+		player = ini.get_value("alarm", "player");
+	    if (ini.has_key("alarm", "repeat"))
+		repeat = ini.get_integer("alarm", "repeat");
+	    else if (ini.has_key("alarm", "file") ||
+		     ini.has_key("alarm", "player"))
+		repeat = 1;
 	    if (ini.has_key("alarm", "alsa_state"))
 		alsa_state = expand_home(ini.get_value("alarm", "alsa_state"));
 	    if (ini.has_key("alarm", "alarm_script"))
