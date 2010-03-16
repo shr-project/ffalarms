@@ -1643,10 +1643,7 @@ class MainWin : BaseWin
 	}
 	schedule_alarms_();
 	update_alarms();
-	var black_hole = new HashTable<int, EventHandler>.full(null, null,
-							       null, null);
-	black_hole.insert(0, new EventHandler(EventType.SIGNAL_USER,
-					      sig_user));
+	(void *) new EventHandler(EventType.SIGNAL_USER, sig_user);
 
 	win.resize(480, 640);
 	win.show();
