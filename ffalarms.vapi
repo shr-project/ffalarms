@@ -23,4 +23,13 @@ public GLib.FileStream? popen(string cmd, string mode);
 [CCode (cheader_filename="stdlib.h")]
 public long strtol(string s, out weak string endptr = null, int _base = 0);
 
+public unowned string dbus_bus_get_unique_name(DBus.RawConnection connection);
+public int dbus_bus_request_name(
+    DBus.RawConnection connection, string name, uint flags,
+    ref DBus.RawError error);
+public int dbus_bus_release_name(
+    DBus.RawConnection connection, string name, ref DBus.RawError error);
 
+DBus.Object dbus_g_proxy_new_for_name_owner(
+    DBus.Connection connection,
+    string name, string path, string? interface_ = null) throws DBus.Error;

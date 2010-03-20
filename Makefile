@@ -13,11 +13,13 @@ data/ffalarms.edc \
 data/alarm.sh \
 data/alarm.wav \
 data/ffalarms.desktop \
+data/ffalarms.conf \
 images/circle.png \
 images/ffalarms.png \
 images/ffalarms.svg
 
 PREFIX=/usr
+SYSCONFDIR=/etc
 PKG = elementary gobject-2.0 dbus-glib-1 libical
 PKG_CFLAGS = `pkg-config --cflags ${PKG}`
 PKG_LDFLAGS = `pkg-config --libs ${PKG}`
@@ -87,6 +89,9 @@ install: all
 	install -m 644 images/ffalarms.png ${DESTDIR}${PREFIX}/share/pixmaps
 	install -d ${DESTDIR}${PREFIX}/share/doc/ffalarms
 	install -m 644 README ${DESTDIR}${PREFIX}/share/doc/ffalarms
+	install -d ${DESTDIR}${SYSCONFDIR}/dbus-1/system.d
+	install -m 644 data/ffalarms.conf \
+		${DESTDIR}${SYSCONFDIR}/dbus-1/system.d/ffalarms.conf
 
 clean:
 	rm -f *.o ffalarms armv4t/ffalarms

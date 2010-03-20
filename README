@@ -4,8 +4,8 @@ Ffalarms
 Ffalarms is a program to set multiple alarms a day using a finger
 friendly user interface (hence the name).
 
-Three clicks to set an alarm time.  Progressive volume.  Switch off
-though four button puzzle.  LED night clock included.
+Three clicks to set an alarm time.  Progressive volume.  Snoozed with
+double click and turned of with a slider.  LED night clock included.
 
 Ffalarms uses an analog-like clock face to select a time of the alarm
 so only one to three clicks are needed to pick a time: one to select
@@ -17,11 +17,6 @@ maximum.  Thus you may be awaken by a gentle sound if your sleep is
 shallow (especially if you select a nice tune as an alarm), but you
 may require it to get louder if you are in a deep sleep or hard
 working and ignoring distractions from environment.
-
-To confirm turning off the alarm you have to click four buttons with
-numbers in proper order under a 5 second timeout: pretty hard to do if
-you are still half-sleeping and and your sight is still unclear and
-blurred (at least much harder than pushing the snooze button :)).
 
 Ffalarms also contains a 7 segment LED-like night clock.
 
@@ -45,19 +40,12 @@ http://git.shr-project.org/git/?p=ffalarms.git;a=summary
 Inspirations
 ------------
 
-The layout of the user interface is clearly inspired by that of Neon_
-(also `on opkg.org`__), a nice and finger friendly image viewer.  The
-confirmation puzzle idea is taken from Zhone_, FSO_ usable demo
-application.  The 7 segment LED-like night clock is inspired by the
-`LED clock`_ (`on opkg.org`__), which I have discovered on opkg.org_
-while having ffalarms usable on my Neo FreeRuner (though not yet in a
-releasable state).
+The 7 segment LED-like night clock is inspired by the `LED clock`_
+(`on opkg.org`__), which I have discovered on opkg.org_ while having
+ffalarms usable on my Neo FreeRuner (though not yet in a releasable
+state).
 
-.. _Neon: http://neon.projects.openmoko.org/
-.. __: http://www.opkg.org/package_62.html
-.. _Zhone: http://wiki.openmoko.org/wiki/Zhone
-.. _FSO: http://www.freesmartphone.org/
-.. _LED clock: http://projects.openmoko.org/projects/ledclock/,
+.. _LED clock: http://projects.openmoko.org/projects/ledclock/
 .. __: http://www.opkg.org/package_104.html
 .. _opkg.org: http://www.opkg.org/
 
@@ -72,8 +60,7 @@ Requires:
 - `EFL Vala Bindings`_ (libeflvala)
 - `libical`_
 - atd_ (may be atd-over-fso_ working on top of FSO_ platform)
-- ``alsa-utils-amixer`` ``alsa-utils-alsactl``
-  ``openmoko-alsa-scenarios`` ``ttf-dejavu-sans``
+- ``alsa-utils-amixer`` ``ttf-dejavu-sans``
 
 Optional:
 
@@ -83,6 +70,7 @@ Optional:
 .. _Vala: http://live.gnome.org/Vala
 .. _EFL Vala Bindings: http://git.freesmartphone.org/?p=libeflvala.git;a=summary
 .. _libical: http://freeassociation.sourceforge.net
+.. _FSO: http://www.freesmartphone.org/
 .. _atd: http://projects.linuxtogo.org/projects/atd/
 .. _atd-over-fso: http://projects.openmoko.org/frs/?group_id=260
 
@@ -102,6 +90,8 @@ Features
 
 - Supports recurring alarms.
 
+- Supports snoozing.
+
 - May be configured to use any media player, such as MPlayer_, but
   works out of the box with aplay_ from ``alsa-utils-aplay``.
 
@@ -111,12 +101,12 @@ Features
 - Adding, listing, and removing alarms is possible from command line
   (see `Command line options`_ below).
 
-- LED clock, confirmation puzzles and analog clock alarm selection are
-  completely themeable, as they are implemented in Edje_ using Embryo_
-  for logic.
+- LED clock and analog clock alarm selection are completely themeable,
+  as they are implemented in Edje_ using Embryo_ for logic.
 
-- It currently depends on atd_ for alarm scheduling, hope it makes it
-  more portable (but Elementary_ makes it more problematic).
+- It currently depends on atd_ for alarm scheduling and FSO_ for other
+  device interactions such as requesting CPU and Display and setting
+  brightness of the LED clock.
 
 .. _Elementary: http://trac.enlightenment.org/e/wiki/Elementary
 .. _MPlayer: http://www.mplayerhq.hu/design7/news.html
@@ -159,6 +149,7 @@ is equivalent to ::
     player=aplay -q %(file)s
     file=/usr/share/ffalarms/alarm.wav
     repeat=500
+    snooze=5, 60
     volume=60, 100, 105
     alarm_script=/usr/share/ffalarms/alarm.sh
 
@@ -179,6 +170,9 @@ Reference ``%(file)s`` in the player option will be expanded to a
 value of file option with leading tilde (``~``) replaced with the home
 directory and proper shell quoting if needed.
 
+The alarm may be snoozed by double clicking the acknowledge window (by
+default five times for 60 seconds).
+
 By default volume of the alarm starts at 60 and increases up to 100,
 the increase takes 105 seconds.  You can change it by setting
 ``volume`` to a similar list of three numbers or a fixed volume
@@ -191,13 +185,6 @@ For example you could use vibrator to play the alarm
   | repeat=10
   | player=sh -c 'mdbus -s org.freesmartphone.odeviced /org/freesmartphone/Device/LED/neo1973_vibrator org.freesmartphone.Device.LED.BlinkSeconds 2 100 100; sleep 10'
   | volume=-1
-
-You can also change ALSA state which is loaded before playing the
-alarm, for example on SHR_ you could use (though on SHR it will work
-out of the box) ::
-
-    [alarm]
-    alsa_state=/usr/share/shr/scenarii/stereoout.state
 
 .. _12/24 hour mode, brightness and color:
 
@@ -234,7 +221,7 @@ Command line options
       --del=TIMESTAMP         delete alarm with a given timestamp
       --kill                  kill running alarm
       -l, --list              list scheduled alarms
-      --puzzle                run turn off puzzle
+      --puzzle                show the acknowledge window
       --play-alarm            play alarm
       --version               display version and exit
 
@@ -304,7 +291,7 @@ Versions
 0.3 (2009-10-26)
 ................
 
-- add support for recurring alarms and chosing alarm date from a
+- add support for recurring alarms and choosing alarm date from a
   calendar
 
 - add configuration option for volume, alarm_script and alsa_state

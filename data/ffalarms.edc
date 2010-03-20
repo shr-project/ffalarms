@@ -27,11 +27,6 @@
 
 #define LED_COLOR 0 255 0 255
 
-#define PUZZLE_TIMEOUT 5
-#define PUZZLE_INTER_TIMEOUT 1
-#define PUZZLE_TEXT_SIZE 72
-#define PUZZLE_RESET_TEXT_SIZE 90
-
 
 #define PROG(NAME, SIGNAL, SOURCE, REST)                                \
     program {                                                           \
@@ -188,65 +183,6 @@
                 size: 30;                                               \
                 align: 0.5 0.5;                                         \
             }                                                           \
-        }                                                               \
-    }
-
-#define SQR_BUTTON_EXT(NAME, TXT, ALIGN, POS1, OF1, POS2, OF2)          \
-    part {                                                              \
-        name: NAME"-button";                                            \
-        type: SWALLOW;                                                  \
-        mouse_events: 1;                                                \
-                                                                        \
-        description {                                                   \
-            state: "default" 0.0;                                       \
-            align: ALIGN;                                               \
-            aspect: 1 1;                                                \
-            aspect_preference: BOTH;                                    \
-            min: 60 60;                                                 \
-                                                                        \
-            rel1 {                                                      \
-                relative: POS1;                                         \
-                offset: OF1;                                            \
-            }                                                           \
-            rel2 {                                                      \
-                relative: POS2;                                         \
-                offset: OF2;                                            \
-            }                                                           \
-        }                                                               \
-    }                                                                   \
-    part {                                                              \
-        name: NAME;                                                     \
-        type: TEXT;                                                     \
-        effect: SOFT_OUTLINE;                                           \
-        mouse_events: 0;                                                \
-        repeat_events: 1;                                               \
-                                                                        \
-        description {                                                   \
-            state: "default" 0.0;                                       \
-            align: 0.5 0.5;                                             \
-            color: 255 255 255 255;                                     \
-            color2: 0 0 0 255;                                          \
-                                                                        \
-            rel1.to: NAME"-button";                                     \
-            rel2.to: NAME"-button";                                     \
-            text {                                                      \
-                text: TXT;                                              \
-                font: BOLD_FONT;                                        \
-                size: PUZZLE_TEXT_SIZE;                                 \
-                align: 0.5 0.5;                                         \
-            }                                                           \
-        }                                                               \
-        description {                                                   \
-            state: "selected" 0.0;                                      \
-            inherit: "default" 0.0;                                     \
-            color: 0 0 0 255;                                           \
-            color2: 255 255 255 255;                                    \
-        }                                                               \
-        description {                                                   \
-            state: "restart" 0.0;                                       \
-            inherit: "default" 0.0;                                     \
-            color: 255 0 0 255;                                         \
-            text.size: PUZZLE_RESET_TEXT_SIZE;                          \
         }                                                               \
     }
 
@@ -477,125 +413,6 @@ collections {
                 set_int(minute, m);
                 snprintf(s, 5, "%d%d", m / 10, m % 10);
                 set_text(PART:"minute", s);
-            }
-        }
-    }
-
-    group {
-        name: "puzzle-group";
-
-        parts {
-            part {
-                name: "frame";
-                type: SWALLOW;
-
-                description {
-                    rel1 {
-                        relative: 0 0.14;
-                        to_x: "0-button";
-                    }
-                    rel2 {
-                        relative: 1 0.16;
-                        to_x: "1-button";
-                    }
-                }
-            }
-            SQR_BUTTON_EXT("0", "1", 1.0 1.0,
-                           0.1 0.3, 0 0,
-                           0.5 0.6, -M -M);
-            SQR_BUTTON_EXT("1", "2", 0.0 1.0,
-                           0.5 0.3, M 0,
-                           0.9 0.6, 0 -M);
-            SQR_BUTTON_EXT("2", "3", 1.0 0.0,
-                           0.1 0.6, 0 M,
-                           0.5 0.9, -M 0);
-            SQR_BUTTON_EXT("3", "4", 0.0 0.0,
-                           0.5 0.6, M M,
-                           0.9 0.9, 0.0 0.0);
-        }
-
-        programs {
-            program {
-                name: "start";
-                signal: "start";
-                source: "";
-                script { start(1); }
-            }
-            program {
-                name: "clicked";
-                signal: "mouse,clicked,1";
-                source: "?-button";
-                script {
-                    new s[2];
-                    getsarg(1, s, 2);
-                    clicked(atoi(s));
-                }
-            }
-        }
-
-        script {
-            const btn_cnt = 4;
-
-            new const btns_txt[] = { PART:"0", PART:"1", PART:"2", PART:"3" }
-
-            public puzzle, cur_num;
-
-            public set_perm(var) {
-                while (count(var) > 0)
-                    remove(var, 0);
-                new a[btn_cnt] = { 0, 1, ... };
-                for (new i = 0; i < btn_cnt; i++) {
-                    new idx = rand() % (btn_cnt - i);
-                    append_int(var, a[idx]);
-                    a[idx] = a[btn_cnt - i - 1];
-                }
-            }
-
-            public restart(val) {
-                if (get_int(cur_num) == -1)
-                    return;
-                set_int(cur_num, -2);
-                for (new i = 0; i < btn_cnt; i++) {
-                    set_text(btns_txt[i], "?");
-                    set_state(btns_txt[i], "restart", 0.0);
-                }
-                timer(PUZZLE_INTER_TIMEOUT, "start", 0);
-            }
-
-            public start(val) {
-                if (!val && get_int(cur_num) == -1)
-                    return;
-                set_perm(puzzle);
-                new s[10];
-                for (new i = 0; i < btn_cnt; i++) {
-                    set_state(btns_txt[i], "default", 0.0);
-                    snprintf(s, 10, "%d", fetch_int(puzzle, i) + 1);
-                    set_text(btns_txt[i], s);
-                }
-                set_int(cur_num, 0);
-                timer(PUZZLE_TIMEOUT, "restart", 0);
-            }
-
-            public clicked(num) {
-                if (count(puzzle) == 0)
-                    return;
-                new cur = get_int(cur_num);
-                if (fetch_int(puzzle, num) == cur) {
-                    set_int(cur_num, cur + 1);
-                    set_state(btns_txt[num], "selected", 0.0);
-                } else if (cur >= 0) {
-                    set_int(cur_num, 0);
-                    for (new i = 0; i < btn_cnt; i++)
-                        set_state(btns_txt[i], "default", 0.0);
-                }
-                if (get_int(cur_num) == btn_cnt) {
-                    set_int(cur_num, -1);
-                    timer(0.01, "solved", 0);
-                }
-            }
-
-            public solved(dummy) {
-                emit("solved", "");
             }
         }
     }

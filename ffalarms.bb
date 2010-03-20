@@ -14,9 +14,9 @@ SRC_URI = "file://ffalarms-${PV}.tar.gz"
 PACKAGES = "${PN} ${PN}-dbg ${PN}-doc"
 FILES_${PN} += "${datadir}/${PN} ${datadir}/applications ${datadir}/pixmaps"
 
-RDEPENDS = "atd alsa-utils-amixer alsa-utils-alsactl ttf-dejavu-sans"
+RDEPENDS = "atd alsa-utils-amixer ttf-dejavu-sans"
 
-RSUGGESTS = "mplayer alsa-utils-aplay frameworkd openmoko-alsa-scenarios"
+RSUGGESTS = "mplayer alsa-utils-aplay frameworkd"
 
 do_configure() {
 	oe_runmake configure
@@ -27,5 +27,13 @@ do_compile() {
 }
 
 do_install() {
-	oe_runmake install DESTDIR=${D}
+	oe_runmake install DESTDIR=${D} SYSCONFDIR=${sysconfdir}
+}
+
+pkg_postinst() {
+	/etc/init.d/dbus-1 reload
+}
+
+pkg_postrm() {
+	/etc/init.d/dbus-1 reload
 }

@@ -1,5 +1,5 @@
 /* ffalarms -- finger friendly alarms
- * Copyright (C) 2009 Łukasz Pankowski <lukpank@o2.pl>
+ * Copyright (C) 2009-2010 Łukasz Pankowski <lukpank@o2.pl>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,15 @@ using Ecore;
 using Posix;
 using ICal;
 
+namespace Ffalarms {
+
 public const string VERSION = "0.3.2";
 public const string EDJE_FILE = "/usr/share/ffalarms/ffalarms.edj";
 public const string ALARM_SH = "/usr/share/ffalarms/alarm.sh";
 public const string ATD_CONTACT_ERR =
     "Could not contact atd daemon, the alarm may not work";
-public const string COMMANDS = "alsactl amixer";
-public const string[] ALSASTATE_PATH = {
-    "/usr/share/openmoko/scenarios", "/usr/share/shr/scenarii" };
-public const string ALSASTATE = "stereoout.state";
+public const string AMIXER = "amixer";
+public const string DBUS_NAME = "org.openmoko.projects.ffalarms.alarm";
 
 
 public errordomain MyError {
@@ -76,26 +76,10 @@ throws MyError, FileError
     int repeat = cfg.repeat;
     string alarm_sh, player = alarm_cmd.chug().split(" ", 2)[0];
     Posix.Stat st;
-    string alsa_state = null;
 
-    foreach (var cmd in "%s %s".printf(COMMANDS, player).split(" "))
+    foreach (unowned string cmd in new string[] {AMIXER, player})
 	if (Environment.find_program_in_path(cmd) == null)
 	    throw new MyError.CONFIG("command %s not found".printf(cmd));
-    if (cfg.alsa_state != null) {
-	if (stat(cfg.alsa_state, out st) == 0)
-	    alsa_state = cfg.alsa_state;
-    } else {
-	foreach (var path in ALSASTATE_PATH) {
-	    alsa_state = Path.build_filename(path, ALSASTATE);
-	    if (stat(alsa_state, out st) == 0)
-		break;
-	    alsa_state = null;
-	}
-    }
-    if (alsa_state == null)
-	throw new MyError.CONFIG(
-	    "%s: could not find alsa state".printf(
-		(cfg.alsa_state != null) ? cfg.alsa_state : ALSASTATE));
     var trig = Path.build_filename(cfg.at_spool, "trigger");
     if (stat(trig, out st) != 0 || !S_ISFIFO(st.st_mode))
 	throw new MyError.CONFIG(
@@ -107,8 +91,7 @@ throws MyError, FileError
 FFALARMS_ATD_SCRIPT="$0"
 export FFALARMS_UID FFALARMS_ATD_SCRIPT""".printf(Shell.quote(e.get_uid()));
     FileUtils.set_contents(
-	filename, alarm_sh.printf(header, Shell.quote(alsa_state),
-				  repeat, Shell.quote(alarm_cmd)));
+	filename, alarm_sh.printf(header, repeat, Shell.quote(alarm_cmd)));
     FileUtils.chmod(filename, 0755);
     int fd = open(trig, O_WRONLY | O_NONBLOCK);
     bool atd_error = (fd == -1 || fstat(fd, out st) != 0 ||
@@ -1063,29 +1046,135 @@ class AddAlarm : BaseWin
     }
 }
 
+class Confirm : BaseWin
+{
+    Buttons bs;
+    public delegate void Callback(ListItem item);
+    Callback yes_cb;
+    unowned ListItem item;
 
-class Puzzle : BaseWin
+    public Confirm(Win? parent, string msg, string title,
+		   Confirm.Callback cb, ListItem item)
+    {
+	yes_cb = cb;
+	this.item = item;
+
+	win = new Win(parent);
+	win.title_set(title);
+	win.smart_callback_add("delete-request", this.close);
+	win.resize(480, 640);
+
+	var bg = new Bg(win);
+	bg.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bg);
+	bg.show();
+	swallow((owned) bg);
+
+	var bx = new Box(win);
+	bx.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(bx);
+	bx.show();
+
+	var hbx = new Box(win);
+	hbx.horizontal_set(true);
+	hbx.size_hint_weight_set(1.0, 1.0);
+	hbx.size_hint_align_set(-1.0, 0.5);
+	hbx.pack_end(pad("pad_small"));
+
+	var lb = new Label(win);
+	lb.line_wrap_set(true);
+	lb.label_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
+	lb.size_hint_weight_set(1.0, 1.0);
+	lb.size_hint_align_set(-1.0, 0.5);
+	lb.show();
+	hbx.pack_end(lb);
+
+	hbx.pack_end(pad("pad_small"));
+	hbx.show();
+	bx.pack_end(hbx);
+
+	bs = new Buttons(win);
+	bs.add("Yes", this.yes);
+	bs.add("No", this.close);
+	bx.pack_end(bs.box);
+
+	swallow((owned) bx);
+	swallow((owned) hbx);
+	swallow((owned) lb);
+    }
+
+    public void show()
+    {
+	win.show();
+    }
+
+    void yes()
+    {
+	yes_cb(item);
+	close();
+    }
+
+    void close()
+    {
+	win = null;
+    }
+}
+
+class AckWin : BaseWin
 {
     Bg bg;
-    Button[] b = new Button[4];
-    Frame fr;
-    Label lb;
-    Layout lt;
-    Toggle delete_tg;
+    Toggle ack;
     Buttons btns;
-    public delegate void DeleteAlarms(Eina.List<ListItem> sel);
-    DeleteAlarms delete_alarms;
-    unowned Eina.List<ListItem> sel;
-    public bool exit_when_closed;
+    Evas.Rectangle r;
+    public delegate void Acknowledge(string uid, time_t time);
+    Acknowledge acknowledge;
+    bool exit_when_closed;
+    dynamic DBus.Object alarm;
+    string uid;
+    time_t time;
+    string time_s;
+    string summary;
 
-    public void show(Win? parent, string edje_file,
-		     string label, DeleteAlarms delete_alarms,
-		     Eina.List<ListItem>? sel)
+    public AckWin(dynamic DBus.Object alarm)
     {
-	this.delete_alarms = delete_alarms;
-	this.sel = sel;
-	win = new Win(null, "puzzle", WinType.BASIC);
-	win.title_set("Delete alarm");
+	this.alarm = alarm;
+    }
+
+    public AckWin.standalone(Config cfg)
+    {
+	var uid = Environment.get_variable("FFALARMS_UID");
+	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
+	time_t time = (s != null) ? s.to_int() : 0;
+	dynamic DBus.Object alarm;
+	if (uid == null) {
+	    alarm = Main.bus.get_object(DBUS_NAME, "/", DBUS_NAME);
+	} else {
+	    // XXX night hack
+	    while (true) {
+		try {
+		    alarm = dbus_g_proxy_new_for_name_owner(
+			Main.bus, DBUS_NAME, "/", DBUS_NAME);
+		    string a_uid = alarm.GetUID();
+		    int a_time = alarm.GetTime();
+		    if (uid == a_uid && time == a_time)
+			break;
+		} catch (DBus.Error e) {
+		    if (! (e is DBus.Error.NAME_HAS_NO_OWNER))
+			message("dbus error: %s", e.message);
+		}
+		usleep(300000);
+	    }
+	}
+	this(alarm);
+	exit_when_closed = true;
+	set_data(cfg, uid, time);
+    }
+
+    public void show(Win? parent, Acknowledge acknowledge)
+    {
+	this.acknowledge = acknowledge;
+	win = new Win(null, "acknowledge", WinType.BASIC);
+	win.title_set("Acknowledge alarm");
 	win.smart_callback_add("delete-request", this.close);
 
 	bg = new Bg(win);
@@ -1093,172 +1182,113 @@ class Puzzle : BaseWin
 	win.resize_object_add(bg);
 	bg.show();
 
-	if (sel != null)
-	    delete_selection(label, false);
-	else
-	    puzzle(edje_file, label);
-
-	win.resize(480, 640);
-	win.show();
-    }
-
-    public void show_ack(string label, DeleteAlarms delete_alarms,
-			 Eina.List<ListItem>? sel)
-    {
-	this.delete_alarms = delete_alarms;
-	this.sel = sel;
-	this.no_close = true;
-	lt.hide();
-	delete_selection(label, true);
-    }
-
-    void delete_selection(string label, bool ack)
-    {
 	var bx = new Box(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
 
-	bx.pack_end(pad("pad_small"));
-	var lb1 = new Label(win);
-	lb1.label_set("<b>%s</b><br><br>".printf(label));
-	bx.pack_end(lb1);
-	lb1.show();
-	swallow((owned) lb1);
+	var hbx = new Box(win);
+	hbx.horizontal_set(true);
+	hbx.size_hint_weight_set(1.0, 1.0);
+	hbx.size_hint_align_set(-1.0, 0.5);
+	hbx.pack_end(pad("pad_small"));
 
-	var sc = new Scroller(win);
-	sc.content_min_limit(false, false);
-	sc.bounce_set(false, false);
-	sc.size_hint_weight_set(1.0, 1.0);
-	sc.size_hint_align_set(-1.0, -1.0);
-
-	var bx1 = new Box(win);
-	bx1.size_hint_weight_set(1.0, 1.0);
-	lb = new Label(win);
-	var sb = new StringBuilder();
-	unowned ListItem item = null;
-	Eina.Iterator<unowned ListItem> iter = sel.iterator_new();
-	while (iter.get_next(ref item))
-	    sb.append_printf("%s<br>", item.label_get());
-	lb.label_set(sb.str);
+	var lb = new Label(win);
+	lb.line_wrap_set(true);
+	lb.label_set(
+	    "<b>Acknowledge the running alarm</b><br><br>%s<br><br>%s"
+	    .printf(time_s ?? "",
+		    (summary != null) ?
+		    summary.replace("<", "&lt;").replace("\n", "<br>") : ""));
 	lb.size_hint_weight_set(1.0, 1.0);
-	lb.size_hint_align_set(0.5, 0.0);
-	bx1.pack_end(lb);
+	lb.size_hint_align_set(-1.0, 0.5);
 	lb.show();
-	sc.content_set(bx1);
-	bx1.show();
-	swallow((owned) bx1);
+	hbx.pack_end(lb);
+	swallow((owned) lb);
 
-	bx.pack_end(sc);
-	sc.show();
-	swallow((owned) sc);
-	bx.pack_end(pad("pad_small"));
+	hbx.pack_end(pad("pad_small"));
+	hbx.show();
+	bx.pack_end(hbx);
+	swallow((owned) hbx);
 
-	delete_tg = new Toggle(win);
-	if (ack)
-	    delete_tg.states_labels_set("Acknowledge", "Not acknowledged");
-	else
-	    delete_tg.states_labels_set("Delete", "Keep");
-	delete_tg.scale_set(2.0);
-	bx.pack_end(delete_tg);
-	delete_tg.show();
+	lb = new Label(win);
+	lb.label_set("(double click anywhere to snooze)");
+	bx.pack_end(lb);
+	lb.show();
+	swallow((owned) lb);
+	bx.pack_end(pad("pad_medium"));
+
+	ack = new Toggle(win);
+	ack.states_labels_set("Acknowledge", "Not acknowledged");
+	ack.scale_set(2.0);
+	bx.pack_end(ack);
+	ack.show();
+	ack.smart_callback_add("changed", ack_changed);
 	bx.pack_end(pad("pad_small"));
 
 	btns = new Buttons(win);
-	btns.add("Close", this.close_maybe_delete);
+	unowned Button close = btns.add("Close", this.close_maybe_ack);
+	close.hide();
 	bx.pack_end(btns.box);
 
 	swallow((owned) bx);
+
+	r = new Evas.Rectangle(win.evas_get());
+	r.size_hint_weight_set(1.0, 1.0);
+	win.resize_object_add(r);
+	r.color_set(0, 0, 0, 0);
+	r.repeat_events_set(true);
+	r.event_callback_add(Evas.CallbackType.MOUSE_DOWN, snooze_clicked);
+	r.show();
+
+	win.resize(480, 640);
+	win.show();
     }
 
-    public string uid;
-    public time_t time;
-    string time_s;
-    string summary;
-
-    public void read_env(Config cfg)
+    void snooze_clicked(Evas.Canvas e, Evas.Object obj, void *event_info)
     {
-	uid = Environment.get_variable("FFALARMS_UID");
-	if (uid != null) {
+	var ev = (Evas.EventMouseDown *) event_info;
+	if ((ev->flags & Evas.ButtonFlags.DOUBLE_CLICK) != 0) {
 	    try {
-		var alarms = list_alarms(cfg);
-		foreach (var a in alarms.begin_component()) {
-		    if (a.get_uid() == uid)
-			summary = a.get_summary();
-		}
-	    } catch (MyError e) {
-		GLib.message("Could not list alarms: %s", e.message);
+		alarm.Snooze(uid);
+	    } catch (DBus.Error e) {
+		debug("dbus error: %s", e.message);
 	    }
 	}
-	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
-	if (s != null) {
-	    time = s.to_int();
-	    if (time != 0)
-		time_s = GLib.Time.local(time).format("%a %b %d %X %Y");
-	} else {
-	    time = 0;
+    }
+
+    void ack_changed()
+    {
+	if (ack.state_get())
+	    btns.buttons[0].show();
+    }
+
+    public void set_data(Config cfg, string? uid, time_t time)
+    {
+	this.uid = uid;
+	this.time = time;
+	try {
+	    var alarms = list_alarms(cfg);
+	    foreach (var a in alarms.begin_component())
+		if (a.get_uid() == uid)
+		    summary = a.get_summary();
+	} catch (MyError e) {
+	    GLib.message("Could not list alarms: %s", e.message);
 	}
+	if (time != 0)
+	    time_s = (GLib.Time.local(time).format("%a %b %d %X %Y"));
     }
 
-    void puzzle(string edje_file, string label)
+    void close_maybe_ack()
     {
-	var bx = new Box(win);
-	bx.size_hint_weight_set(1.0, 1.0);
-	bx.show();
-
-	lb = new Label(win);
-	lb.label_set("<b>%s</b>".printf(label));
-	lb.show();
-
-	fr = new Frame(win);
-	fr.style_set("outdent_top");
-	fr.content_set(lb);
-	bx.pack_end(fr);
-	fr.show();
-
-	if (time_s != null || summary != null) {
-	    var lb = new Label(win);
-	    if (time_s != null && summary != null)
-		lb.label_set("%s<br>%s<br>".printf(time_s, summary));
-	    else if (time_s != null)
-		lb.label_set(time_s);
-	    else
-		lb.label_set(summary);
-	    bx.pack_end(lb);
-	    lb.show();
-	    swallow((owned) lb);
+	if (ack.state_get()) {
+	    try {
+		alarm.Stop(uid);
+	    } catch (DBus.Error e) {
+		message("dbus error %s", e.message);
+	    }
+	    acknowledge(uid, time);
 	}
-
-	lt = new Layout(win);
-	lt.file_set(edje_file, "puzzle-group");
-	lt.size_hint_weight_set(1.0, 1.0);
-	win.resize_object_add(lt);
-	lt.show();
-
-	unowned Edje.Object edje = (Edje.Object) lt.edje_get();
-	edje.signal_callback_add("solved", "", this.solved);
-	edje.part_swallow("frame", bx);
-	for (int i = 0; i < 4; i++)
-	    edje.part_swallow("%d-button".printf(i), b[i] = new Button(win));
-	edje.signal_emit("start", "");
-	swallow((owned) bx);
-    }
-
-    bool no_close;
-
-    void solved()
-    {
-	delete_alarms(sel);
-	if (no_close)
-	    no_close = false;
-	else
-	    close();
-    }
-
-    void close_maybe_delete()
-    {
-	if (delete_tg.state_get())
-	    delete_alarms(sel);
 	close();
     }
 
@@ -1321,16 +1351,16 @@ class LEDClock
 
     void set_brightness(int value)
     {
-	if (value == -1 && brightness == -1)
+	if (value == -1 && brightness == -1 || Main.bus == null)
 	    return;
 	try {
-	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	    dynamic DBus.Object o = bus.get_object(
-		"org.freesmartphone.odeviced", "/org/freesmartphone/Device/Display/0",
+	    dynamic DBus.Object display = Main.bus.get_object(
+		"org.freesmartphone.odeviced",
+		"/org/freesmartphone/Device/Display/0",
 		"org.freesmartphone.Device.Display");
 	    if (brightness == -1)
-		brightness = o.GetBrightness();
-	    o.SetBrightness((value != -1) ? value : brightness);
+		brightness = display.GetBrightness();
+	    display.SetBrightness((value != -1) ? value : brightness);
 	    if (value == -1)
 		brightness = -1;
 	} catch (DBus.Error e) {
@@ -1358,45 +1388,30 @@ class Alarms
 	items = new HashTable<ListItem,unowned Component?>(null, null);
 	foreach (unowned NextAlarm a in list_future_alarms(alarms))
 	    items.insert(lst.append(a.to_string(": "), null, null, null), a.comp);
-	lst.multi_select_set(true);
 	lst.go();
     }
 
-    public void delete_alarms(Eina.List<ListItem>? sel) throws MyError
+    public void delete_alarm(ListItem item) throws MyError
     {
-	if (sel == null) {
-	    kill_running_alarms(cfg.at_spool);
-	    return;
+	try {
+	    // XXX delete_alarm could take event as argument
+	    Ffalarms.delete_alarm(items.lookup(item).get_uid(), cfg);
+	} catch (MyError e) {
+	    throw new MyError.ERR(e.message);
 	}
-	unowned ListItem item = null;
-	Eina.Iterator<unowned ListItem> iter = sel.iterator_new();
-	var sb = new StringBuilder();
-	while (iter.get_next(ref item))
-	    try {
-		// XXX delete_alarm could take event as argument
-		delete_alarm(items.lookup(item).get_uid(), cfg);
-	    } catch (MyError e) {
-		sb.append(e.message);
-		sb.append_c('\n');
-	    }
-	if (sb.len != 0)
-	    throw new MyError.ERR(sb.str);
 	// XXX would be nice to work from here:
 	// update();
     }
 
-    public unowned Eina.List<ListItem> get_selection()
+    public unowned ListItem selected_item_get()
     {
-	return lst.selected_items_get();
+	return lst.selected_item_get();
     }
 
-    public unowned Component selected_alarm() throws MyError
+    public unowned Component? selected_alarm()
     {
-	unowned Eina.List<ListItem> sel = lst.selected_items_get();
-	uint n = sel.count();
-        if (n != 1)
-	    throw new MyError.ERR("You must select a single alarm to be edited");
-	return items.lookup(sel.nth(0));
+	unowned ListItem item = lst.selected_item_get();
+	return (item != null) ? items.lookup(item) : null;
     }
 }
 
@@ -1572,7 +1587,8 @@ class MainWin : BaseWin
     Frame fr;
     LEDClock clock;
     AddAlarm aa;
-    Puzzle puz;
+    AckWin puz;
+    Confirm del;
     Alarms alarms;
     InwinMessageQueue msgs;
     InwinMessageQueue.MessageFunc message;
@@ -1626,8 +1642,9 @@ class MainWin : BaseWin
 		(aa = new AddAlarm()).show(win, edje_file, set_alarm_);
 	    });
 	options = new HoverButtons(win);
+	options.add("Acknowledge", show_ack);
 	options.add("Edit", edit_alarm);
-	options.add("Delete", start_delete_puzzle);
+	options.add("Delete", show_delete_alarm);
 	options.hover.target_set(btns.add("Options", options.hover.show));
 	btns.add("Clock", () => {
 		(clock = new LEDClock(cfg)).show(win, edje_file); });
@@ -1641,7 +1658,7 @@ class MainWin : BaseWin
 		    .printf(e.message), "Error reading config file");
 	    cfg.use_defaults();
 	}
-	schedule_alarms_();
+	this.schedule_alarms();
 	update_alarms();
 	(void *) new EventHandler(EventType.SIGNAL_USER, sig_user);
 
@@ -1649,10 +1666,10 @@ class MainWin : BaseWin
 	win.show();
     }
 
-    void schedule_alarms_()
+    void schedule_alarms()
     {
 	try {
-	    schedule_alarms(cfg);
+	    Ffalarms.schedule_alarms(cfg);
 	} catch (MyError e) {
 	    message("%s\nAlarms may not work."
 		    .printf(e.message), "Error while scheduling alarms");
@@ -1680,10 +1697,8 @@ class MainWin : BaseWin
 	update_alarms();
     }
 
-    public void show_delete_puzzle()
+    public void show_standalone_ack()
     {
-	puz = new Puzzle();
-	puz.exit_when_closed = true;
 	cfg = new Config(at_spool);
 	try {
 	    cfg.load_from_file(config_file);
@@ -1691,74 +1706,65 @@ class MainWin : BaseWin
 	    GLib.message("Error reading config file: %s".printf(e.message));
 	    cfg.use_defaults();
 	}
-	puz.read_env(cfg);
-	puz.show(null, edje_file, "Confirm turning off the running alarm",
-		 kill_running_alarms_maybe_ack, null);
+	puz = new AckWin.standalone(cfg);
+	puz.show(null, acknowledge);
     }
 
-    Eina.List<unowned ListItem> ack_sel;
-    Elm.List ack_lst;
-    ListItem ack_item;
-
-    void kill_running_alarms_maybe_ack()
+    void show_ack()
     {
-	kill_running_alarms(at_spool);
-	if (puz.uid != null && puz.time != 0) {
-	    var alarms = list_alarms(cfg);
-	    foreach (var c in alarms.begin_component()) {
-		if (c.get_uid() == puz.uid) {
-		    win = new Win(null, "fake", WinType.BASIC);
-		    ack_lst = new Elm.List(win);
-		    var next = ICal.Time.from_timet_with_zone(
-			puz.time, false, TimeZone.get_utc_timezone());
-		    var a = new NextAlarm() { comp=c, next=next };
-		    ack_item = ack_lst.append(a.to_string(": "),
-					      null, null, null);
-		    ack_sel = null;
-		    ack_sel.append(ack_item);
-		    puz.show_ack("Acknowledge the alarm",
-				 acknowledge, ack_sel);
-		    break;
-		}
-	    }
+	dynamic DBus.Object alarm;
+	string uid;
+	int time;
+
+	try {
+	    alarm = dbus_g_proxy_new_for_name_owner(Main.bus,
+						    DBUS_NAME, "/", DBUS_NAME);
+	    uid = alarm.GetUID();
+	    time = alarm.GetTime();
+	} catch (DBus.Error e) {
+	    message((e is DBus.Error.NAME_HAS_NO_OWNER) ?
+		    "No alarm is playing" : "dbus error: %s".printf(e.message),
+		    "Acknowledge alarm");
+	    return;
 	}
+	puz = new AckWin(alarm);
+	puz.set_data(cfg, (owned) uid, (time_t) time);
+	puz.show(win, acknowledge);
     }
 
-    void acknowledge(Eina.List<ListItem> sel)
+    void acknowledge(string uid, time_t time)
     {
-	acknowledge_alarm(puz.uid, puz.time, cfg);
-	schedule_alarms(cfg);
-	ack_item = null;
-	ack_sel = null;
+	acknowledge_alarm(uid, time, cfg);
+	Ffalarms.schedule_alarms(cfg);
     }
 
-    void start_delete_puzzle()
+    void show_delete_alarm()
     {
-	puz = new Puzzle();
-	unowned Eina.List<ListItem> sel = alarms.get_selection();
-	uint n = sel.count();
-	string label;
-        if (n == 1)
-            label = "Confirm removing of the selected alarm";
-        else if (n > 1)
-            label = "Confirm removing of %u selected alarms".printf(n);
-        else
-            label = "Confirm turning off the running alarm";
-	puz.show(win, edje_file, label, delete_alarms, sel);
+	unowned ListItem item = alarms.selected_item_get();
+        if (item != null) {
+	    del = null;
+	    del = new Confirm(
+		null, "Do you really want to delete the alarm:\n\n%s"
+		.printf(item.label_get()),
+		"Delete alarm", delete_alarms, item);
+	    del.show();
+        } else {
+	    message("No alarm selected", "Delete alarm");
+	}
     }
 
     string edited_alarm_uid;
     void edit_alarm()
     {
-	unowned Component c;
-	try {
-	    c = alarms.selected_alarm();
+	unowned Component c = alarms.selected_alarm();
+	if (c != null) {
 	    edited_alarm_uid = c.get_uid();
 	    aa = new AddAlarm();
 	    aa.show(win, edje_file, set_alarm_);
 	    aa.set_data(c);
-	} catch (MyError e) {
-	    message(e.message, "Edit alarm");
+	} else {
+	    message("You must select a single alarm to be edited",
+		    "Edit alarm");
 	}
     }
 
@@ -1766,14 +1772,14 @@ class MainWin : BaseWin
     // segfaults so the list owns the items (XXX unowned?)
     // XXX probably free_function="" try
 
-    public void delete_alarms(Eina.List<ListItem>? sel)
+    public void delete_alarms(ListItem item)
     {
 	try {
-	    alarms.delete_alarms(sel);
+	    alarms.delete_alarm(item);
 	} catch (MyError e) {
 	    message(e.message, "Delete alarms");
 	}
-	schedule_alarms_();
+	this.schedule_alarms();
 	// XXX dirty update
 	update_alarms();
     }
@@ -1800,11 +1806,12 @@ public class Config
     public string at_spool;
     public const string DEFAULT_CONFIG = "~/.ffalarmsrc";
     public const int BRIGHTNESS = 33;
-    public string alsa_state;
     public string alarm_script;
     public int alarm_volume_initial;
     public int alarm_volume_final;
     public int alarm_volume_inc_interval;
+    public int snooze_cnt;
+    public int snooze_interval;
     string player;
     string alarm_file;
     public int repeat;
@@ -1829,6 +1836,8 @@ public class Config
 	alarm_volume_initial = 60;
 	alarm_volume_final = 100;
 	alarm_volume_inc_interval = 105;
+	snooze_cnt = 5;
+	snooze_interval = 60;
     }
 
     public void load_from_file(string? filename) throws MyError
@@ -1848,13 +1857,13 @@ public class Config
 	    else if (ini.has_key("alarm", "file") ||
 		     ini.has_key("alarm", "player"))
 		repeat = 1;
-	    if (ini.has_key("alarm", "alsa_state"))
-		alsa_state = expand_home(ini.get_value("alarm", "alsa_state"));
 	    if (ini.has_key("alarm", "alarm_script"))
 		alarm_script = expand_home(ini.get_value("alarm",
 							 "alarm_script"));
 	    if (ini.has_key("alarm", "volume"))
 		read_alarm_volume();
+	    if (ini.has_key("alarm", "snooze"))
+		read_snooze();
 	    time_24hr_format = (ini.has_key("ledclock", "24hr_format")) ?
 		ini.get_boolean("ledclock", "24hr_format") : false;
 	    brightness = (ini.has_key("ledclock", "brightness")) ?
@@ -1899,6 +1908,21 @@ public class Config
 	}
     }
 
+    void read_snooze() throws MyError
+    {
+	try {
+	    int[] snooze = ini.get_integer_list("alarm", "snooze");
+	    if (snooze.length == 2) {
+		snooze_cnt = snooze[0];
+		snooze_interval = snooze[1];
+	    } else {
+		throw new MyError.CONFIG("Snooze must match: \"snooze_cnt, snooze_interval\"");
+	    }
+	} catch (KeyFileError e) {
+	    throw new MyError.CONFIG(e.message);
+	}
+    }
+
     int[] get_color(string group, string key) throws MyError
     {
 	int[] color;
@@ -1926,33 +1950,64 @@ public class Config
 }
 
 
-class Alarm {
-    const string[] AMIXER_CMD = {"amixer", "--stdin", "--quiet", null};
+[DBus (name = "org.freesmartphone.Notification")]
+interface Notification {
+    public abstract void alarm() throws DBus.Error;
+}
+
+[DBus (name = "org.openmoko.projects.ffalarms.alarm")]
+interface AlarmControler {
+    public abstract string GetUID() throws DBus.Error;
+    public abstract int GetTime() throws DBus.Error;
+    public abstract void Snooze(string uid) throws DBus.Error;
+    public abstract void Stop(string uid) throws DBus.Error;
+}
+
+
+class Alarm : GLib.Object, Notification, AlarmControler {
+    const string[] AMIXER_CMD = {AMIXER, "--stdin", "--quiet", null};
+    const string[] AMIXER_GET_PCM_CMD = {AMIXER, "sget", "PCM", null};
     const string SET_PCM_FMT = "sset PCM %g%%\n";
+    const string SET_PCM_2_FMT = "sset PCM %d,%d\n";
 
     string[] play_argv;
     int cnt;
+    int repeat;
+    int snooze_cnt;
+    uint snooze_id = 0;
+    static bool snoozing;
     Config cfg;
     double volume;
     double volume_inc_step;
+    uint inc_volume_id = 0;
     FileStream mixer;
     GLib.MainLoop ml;
     static pid_t player_pid = 0;
+    enum Action { NONE = 0, EXIT, SNOOZE }
+    static Action action = Action.NONE;
+    DBus.Connection bus;
+    string unique_name;
+    bool in_queue;
+    dynamic DBus.Object usage;
+    dynamic DBus.Object audio;
+    dynamic DBus.Object xbus;
+    bool scenario_pushed = false;
+    string uid;
+    int[] saved_pcm_volume = {-1, -1};
 
     public Alarm(string play_cmd, int cnt, Config cfg) {
-	this.cnt = cnt;
+	this.cnt = this.repeat = cnt;
 	try {
 	    Shell.parse_argv(play_cmd, out play_argv);
 	} catch (ShellError e) {
 	    die(e.message);
 	}
 	this.cfg = cfg;
+	uid = Environment.get_variable("FFALARMS_UID") ?? "";
     }
 
     public void run()
     {
-	int stdin;
-
 	try {
 	    schedule_alarms(cfg);
 	} catch (GLib.Error e) {
@@ -1961,44 +2016,40 @@ class Alarm {
 	}
 
 	ml = new GLib.MainLoop(null, false);
-	request_resources();
-	if (cfg.alarm_volume_initial != -1) {
-	    try {
-		volume = cfg.alarm_volume_initial;
-		Process.spawn_async_with_pipes(
-			null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
-			null, null, out stdin, null, null);
-		mixer = FileStream.fdopen(stdin, "w");
-		mixer.printf(SET_PCM_FMT, volume);
-		mixer.flush();
-		if (volume < cfg.alarm_volume_final) {
-		    volume_inc_step = (((double)cfg.alarm_volume_final
-					- cfg.alarm_volume_initial)
-				       / cfg.alarm_volume_inc_interval);
-		    Timeout.add(1000, inc_volume);
-		}
-	    } catch (SpawnError e) {
-		// we continue with default volume
-		GLib.message("Alarm.run: %s", e.message);
-	    }
+	try {
+	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	    unique_name = dbus_bus_get_unique_name(
+		(DBus.RawConnection*)bus.get_connection());
+	} catch (DBus.Error e) {
+	    debug("dbus error: %s", e.message);
+	}
+	if (bus != null) {
+	    usage = bus.get_object(
+		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage",
+		"org.freesmartphone.Usage");
+	    request_resources();
+	    bus.register_object("/", this);
+	    audio = bus.get_object(
+		"org.freesmartphone.odeviced",
+		"/org/freesmartphone/Device/Audio",
+		"org.freesmartphone.Device.Audio");
+	    xbus = bus.get_object("org.freedesktop.DBus",
+				  "/org/freedesktop/DBus",
+				  "org.freedesktop.DBus");
+	    xbus.NameOwnerChanged += wait_for_name_ownership;
 	}
 	signal(SIGTERM, sigterm);
-	alarm_loop();
+	signal(SIGINT, sigterm);
+	snooze_cnt = cfg.snooze_cnt;
+
+	alarm_begin();
 	ml.run();
     }
 
     void request_resources()
     {
-	try {
-	    var bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	    dynamic DBus.Object usage = bus.get_object(
-		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage",
-		"org.freesmartphone.Usage");
-	    usage.RequestResource("CPU", async_result);
-	    usage.RequestResource("Display", async_result);
-	} catch (DBus.Error e) {
-		debug("Could not connect to dbus or other dbus error");
-	}
+	usage.RequestResource("CPU", async_result);
+	usage.RequestResource("Display", async_result);
     }
 
     void async_result(GLib.Error e) {
@@ -2008,40 +2059,243 @@ class Alarm {
 
     static void sigterm(int signal)
     {
-	if (player_pid != 0)
+	if (player_pid != 0) {
 	    kill(player_pid, SIGTERM);
-	Posix.exit(1);
+	    player_pid = 0;
+	}
+	if (snoozing)
+	    Posix.exit(0);
+	else
+	    action = Action.EXIT;
+    }
+
+    public void Snooze(string uid) throws DBus.Error
+    {
+	if (uid != this.uid)
+	    return;
+	if (action == Action.NONE)
+	    action = Action.SNOOZE;
+	if (player_pid != 0) {
+	    kill(player_pid, SIGTERM);
+	    player_pid = 0;
+	}
+    }
+
+    public void Stop(string uid) throws DBus.Error
+    {
+	if (uid != this.uid)
+	    return;
+	action = Action.EXIT;
+	if (player_pid != 0) {
+	    kill(player_pid, SIGTERM);
+	    player_pid = 0;
+	}
+	// XXX similar for sigterm
+	if (snoozing)
+	    ml.quit();
+    }
+
+    public string GetUID() throws DBus.Error
+    {
+	return uid;
+    }
+
+    public int GetTime() throws DBus.Error
+    {
+	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
+	return (s != null) ? s.to_int() : 0;
+    }
+
+    void wait_for_name_ownership(dynamic DBus.Object o, string name,
+				 string prev_owner, string new_owner)
+    {
+	if (in_queue && name == DBUS_NAME && new_owner == unique_name) {
+	    in_queue = false;
+	    alarm_begin();
+	}
+    }
+
+    void alarm_begin()
+    {
+	if (bus != null) {
+	    var err = DBus.RawError();
+	    int reply = dbus_bus_request_name(
+		(DBus.RawConnection*)bus.get_connection(),
+		DBUS_NAME, 0, ref err);
+	    if (err.is_set()) {
+		warning("dbus error: %s\n", err.message);
+	    } else if (reply == DBus.RequestNameReply.IN_QUEUE) {
+		in_queue = true;
+		return;	  /* waiting */
+	    }
+	}
+	in_queue = false;
+	begin_volume_inc_loop();
+	alarm_loop();
+    }
+
+    void begin_volume_inc_loop()
+    {
+	if (audio != null && !scenario_pushed) {
+	    try {
+		audio.PushScenario("stereoout");
+		scenario_pushed = true;
+	    } catch (DBus.Error e) {
+		debug("D-Bus error: %s", e.message);
+	    }
+	}
+	if (cfg.alarm_volume_initial == -1)
+	    return;
+	if (mixer == null) {
+	    if (cfg.alarm_volume_initial < cfg.alarm_volume_final)
+		volume_inc_step = (((double)cfg.alarm_volume_final
+				    - cfg.alarm_volume_initial)
+				   / cfg.alarm_volume_inc_interval);
+	    try {
+		int stdin;
+		Process.spawn_async_with_pipes(
+		    null, AMIXER_CMD, null, SpawnFlags.SEARCH_PATH,
+		    null, null, out stdin, null, null);
+		mixer = FileStream.fdopen(stdin, "w");
+	    } catch (SpawnError e) {
+		// we continue with default volume
+		GLib.message("Alarm.run: %s", e.message);
+		return;
+	    }
+	}
+	try {
+	    string pcm_volume;
+	    Process.spawn_sync(null, AMIXER_GET_PCM_CMD, null,
+			       SpawnFlags.SEARCH_PATH,
+			       null, out pcm_volume, null, null);
+	    saved_pcm_volume[0] = -1;
+	    MatchInfo m;
+	    var re = new Regex(
+		" +Front (?:Left|Right):(?: Playback)? ([0-9]+)");
+	    if (re.match(pcm_volume, 0, out m)) {
+		int i = 0;
+		while (m.matches() && i < 2) {
+		    saved_pcm_volume[i++] = m.fetch(1).to_int();
+		    m.next();
+		}
+	    }
+	} catch (SpawnError e) {
+	    GLib.message("Alarm.run: %s", e.message);
+	} catch (RegexError e) {
+	    debug("regex error: %s", e.message);
+	}
+	volume = cfg.alarm_volume_initial;
+	mixer.printf(SET_PCM_FMT, volume);
+	mixer.flush();
+	if (volume < cfg.alarm_volume_final)
+	    inc_volume_id = Timeout.add(1000, inc_volume);
     }
 
     bool inc_volume()
     {
 	volume += volume_inc_step;
+	if (volume > cfg.alarm_volume_final)
+	    volume = cfg.alarm_volume_final;
 	mixer.printf(SET_PCM_FMT, volume);
 	mixer.flush();
+	if (volume == cfg.alarm_volume_final)
+	    inc_volume_id = 0;
 	return volume < cfg.alarm_volume_final;
+    }
+
+    void release_audio()
+    {
+	if (inc_volume_id != 0) {
+	    Source.remove(inc_volume_id);
+	    inc_volume_id = 0;
+	}
+	if (saved_pcm_volume[0] != -1) {
+	    mixer.printf(SET_PCM_2_FMT,
+			 saved_pcm_volume[0], saved_pcm_volume[1]);
+	    mixer.flush();
+	    saved_pcm_volume[0] = -1;
+	}
+	if (scenario_pushed) {
+	    try {
+		string s = audio.PullScenario();
+		scenario_pushed = false;
+	    } catch (DBus.Error e) {
+		debug("D-Bus error: %s", e.message);
+	    }
+	}
+    }
+
+    void snooze()
+    {
+	cnt = repeat;
+	usage.ReleaseResource("Display", async_result);
+	dynamic DBus.Object alarm = bus.get_object(
+	    "org.freesmartphone.otimed", "/org/freesmartphone/Time/Alarm",
+	    "org.freesmartphone.Time.Alarm");
+	// XXX if we release name after SetAlarm notification will not come
+	var err = DBus.RawError();
+	dbus_bus_release_name(
+	    (DBus.RawConnection*)bus.get_connection(), DBUS_NAME, ref err);
+	if (err.is_set())
+	    warning("dbus error: %s\n", err.message);
+	try {
+	    // register alarm
+	    alarm.SetAlarm(unique_name, (int)(time_t() + cfg.snooze_interval));
+	    // SetAlarm is cheating, we have to wait to release CPU
+	    snoozing = true;
+	    if (action == Action.EXIT)
+		ml.quit();
+	    snooze_id = Timeout.add(3000, _snooze);
+	} catch (DBus.Error e) {
+	    warning("quit instead of snooze: dbus error: %s", e.message);
+	    ml.quit();
+	}
+    }
+
+    bool _snooze()
+    {
+	usage.ReleaseResource("CPU", async_result);
+	return false;
+    }
+
+    public void alarm() throws DBus.Error
+    {
+	Source.remove(snooze_id);
+	snooze_id = 0;
+	action = Action.NONE;
+	snoozing = false;
+	request_resources();
+	alarm_begin();
     }
 
     void alarm_loop(Pid p = 0, int status = 0)
     {
 	Pid pid;
 
-	if (cnt-- == 0) {
-	    ml.quit();
+	if (cnt-- == 0 || action != Action.NONE) {
+	    release_audio();
+	    if (snooze_cnt-- > 0 && bus != null && action != Action.EXIT)
+		snooze();
+	    else
+		ml.quit();
 	    return;
 	}
 	if (p != (Pid) 0)
-	    usleep(300000);
+	    usleep(300000); // XXX handle snooze coming during usleep
 	signal(SIGTERM, SIG_IGN);
+	signal(SIGINT, SIG_IGN);
 	try {
 	    Process.spawn_async(
 		null, play_argv, null,
 		SpawnFlags.SEARCH_PATH | SpawnFlags.DO_NOT_REAP_CHILD,
 		null, out pid);
 	} catch (SpawnError e) {
+	    release_audio();
 	    die(e.message);
 	}
 	player_pid = (pid_t) pid;
 	signal(SIGTERM, sigterm);
+	signal(SIGINT, sigterm);
 	ChildWatch.add(pid, alarm_loop);
     }
 }
@@ -2056,6 +2310,8 @@ class Main {
     static bool kill = false;
     static bool puzzle = false;
     static string play_cmd = null;
+
+    public static DBus.Connection bus;
 
     [CCode (array_length = false, array_null_terminated = true)]
     static string[] alarms = null;
@@ -2081,7 +2337,7 @@ class Main {
 	{ "list", 'l', 0, OptionArg.NONE, ref list,
 	  "list scheduled alarms", null },
 	{ "puzzle", 0, 0, OptionArg.NONE, ref puzzle,
-	  "run turn off puzzle", null },
+	  "show the acknowledge window", null },
 	{ "play-alarm", 0, 0, OptionArg.STRING, ref play_cmd,
 	  "play alarm", null },
 	{ "version", 0, 0, OptionArg.NONE, ref version,
@@ -2185,8 +2441,20 @@ class Main {
 		die(e.message);
 	    }
 	}
-	if (kill)
-	    kill_running_alarms(at_spool);
+	if (kill) {
+	    try {
+		bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+		dynamic DBus.Object alarm = dbus_g_proxy_new_for_name_owner(
+		    bus, DBUS_NAME, "/", DBUS_NAME);
+		string uid = alarm.GetUID();
+		alarm.Stop(uid);
+	    } catch (DBus.Error e) {
+		if (e is DBus.Error.NAME_HAS_NO_OWNER)
+		    die("No alarm is playing");
+		else
+		    die("dbus error: %s".printf(e.message));
+	    }
+	}
 	if (list)
 	    try {
 		display_alarms_list(cfg);
@@ -2197,13 +2465,20 @@ class Main {
 	    Posix.exit(0);
 
 	Elm.init(args);
+	try {
+	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	} catch (DBus.Error e) {
+	    debug("dbus error: %s", e.message);
+	}
 	var mw = new MainWin(edje_file, at_spool, config_file);
 	if (! puzzle) {
 	    mw.show();
 	} else {
-	    mw.show_delete_puzzle();
+	    mw.show_standalone_ack();
 	}
 	Elm.run();
 	Elm.shutdown();
     }
+}
+
 }
