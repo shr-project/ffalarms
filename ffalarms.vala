@@ -1587,7 +1587,7 @@ class MainWin : BaseWin
     Frame fr;
     LEDClock clock;
     AddAlarm aa;
-    AckWin puz;
+    AckWin ack;
     Confirm del;
     Alarms alarms;
     InwinMessageQueue msgs;
@@ -1608,7 +1608,7 @@ class MainWin : BaseWin
 
     void close()
     {
-	puz = null; // avoid double memory free (edje swallowed buttons)
+	ack = null; // avoid double memory free (edje swallowed buttons)
 	Elm.exit();
     }
 
@@ -1704,8 +1704,8 @@ class MainWin : BaseWin
 	    GLib.message("Error reading config file: %s".printf(e.message));
 	    cfg.use_defaults();
 	}
-	puz = new AckWin.standalone(cfg);
-	puz.show(null, acknowledge);
+	ack = new AckWin.standalone(cfg);
+	ack.show(null, acknowledge);
     }
 
     void show_ack()
@@ -1725,9 +1725,9 @@ class MainWin : BaseWin
 		    "Acknowledge alarm");
 	    return;
 	}
-	puz = new AckWin(alarm);
-	puz.set_data(cfg, (owned) uid, (time_t) time);
-	puz.show(win, acknowledge);
+	ack = new AckWin(alarm);
+	ack.set_data(cfg, (owned) uid, (time_t) time);
+	ack.show(win, acknowledge);
     }
 
     void acknowledge(string uid, time_t time)
