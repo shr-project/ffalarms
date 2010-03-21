@@ -2351,14 +2351,36 @@ class Main {
 
     public static void main(string[] args)
     {
-	Config cfg = null;
 	new Main();	       // just to initialize static fields
-	var oc = new OptionContext(" - finger friendly alarms");
-	oc.add_main_entries(options, null);
+	if (args.length > 1)
+	    process_args(ref args);
+	Elm.init(args);
 	try {
-	    oc.parse(ref args);
-	} catch (GLib.OptionError e) {
-	    die(e.message);
+	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
+	} catch (DBus.Error e) {
+	    debug("dbus error: %s", e.message);
+	}
+	var mw = new MainWin(edje_file, at_spool, config_file);
+	if (! puzzle) {
+	    mw.show();
+	} else {
+	    mw.show_standalone_ack();
+	}
+	Elm.run();
+	Elm.shutdown();
+    }
+
+    static void process_args(ref unowned string[] args)
+    {
+	Config cfg = null;
+	{
+	    var oc = new OptionContext(" - finger friendly alarms");
+	    oc.add_main_entries(options, null);
+	    try {
+		oc.parse(ref args);
+	    } catch (GLib.OptionError e) {
+		die(e.message);
+	    }
 	}
 	if (version) {
 	    GLib.stdout.printf("ffalarms-%s\n", VERSION);
@@ -2370,11 +2392,12 @@ class Main {
 	    try {
 		cfg.load_from_file(config_file);
 	    } catch (MyError e) {
-		warning("Error reading config file: %s. Default configuration will be used.".printf(e.message));
+		warning("Error reading config file: %s. Default configuration will be used."
+			.printf(e.message));
 		cfg.use_defaults();
 	    }
 	    new Alarm(play_cmd, (cnt > 0) ? cnt : 1, cfg).run();
-	    return;
+	    Posix.exit(0);
 	}
 	if (alarms != null || deletes != null || list) {
 	    cfg = new Config(at_spool);
@@ -2463,21 +2486,6 @@ class Main {
 	    }
 	if (list || kill || alarms != null || deletes != null)
 	    Posix.exit(0);
-
-	Elm.init(args);
-	try {
-	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	} catch (DBus.Error e) {
-	    debug("dbus error: %s", e.message);
-	}
-	var mw = new MainWin(edje_file, at_spool, config_file);
-	if (! puzzle) {
-	    mw.show();
-	} else {
-	    mw.show_standalone_ack();
-	}
-	Elm.run();
-	Elm.shutdown();
     }
 }
 
