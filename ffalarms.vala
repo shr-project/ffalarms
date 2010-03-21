@@ -304,7 +304,7 @@ SList<NextAlarm> list_future_alarms(Component alarms)
 }
 
 
-public GLib.List<AlarmInfo?> list_scheduled_alarms(Config cfg)
+public SList<AlarmInfo?> list_scheduled_alarms(Config cfg)
 throws MyError
 {
     Regex re, re_uid;
@@ -318,7 +318,7 @@ throws MyError
     if (dir == null)
 	throw new MyError.CONFIG("Could not list spool directory: %s",
 				 cfg.at_spool);
-    var lst = new GLib.List<AlarmInfo?>();
+    var lst = new SList<AlarmInfo?>();
     unowned DirEnt de;
     MatchInfo m;
     while ((de = readdir(dir)) != null) {
@@ -2418,7 +2418,7 @@ class Main {
 	    }
 	}
 	if (deletes != null) {
-	    GLib.List<AlarmInfo?> lst = null;
+	    SList<AlarmInfo?> lst = null;
 	    try {
 		lst = list_scheduled_alarms(cfg);
 	    } catch (MyError e) {
