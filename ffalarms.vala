@@ -1597,6 +1597,7 @@ class MainWin : BaseWin
     string at_spool;
     string config_file;
     HoverButtons options;
+    string edited_alarm_uid;
 
     public MainWin(string edje_file, string at_spool, string? config_file)
     {
@@ -1637,10 +1638,7 @@ class MainWin : BaseWin
 	fr.show();
 
 	btns = new Buttons(win);
-	btns.add("Add", () => {
-		edited_alarm_uid = null;
-		(aa = new AddAlarm()).show(win, edje_file, set_alarm_);
-	    });
+	btns.add("Add", add_alarm);
 	options = new HoverButtons(win);
 	options.add("Acknowledge", show_ack);
 	options.add("Edit", edit_alarm);
@@ -1753,14 +1751,18 @@ class MainWin : BaseWin
 	}
     }
 
-    string edited_alarm_uid;
+    void add_alarm()
+    {
+	edited_alarm_uid = null;
+	(aa = new AddAlarm()).show(win, edje_file, set_alarm_);
+    }
+
     void edit_alarm()
     {
 	unowned Component c = alarms.selected_alarm();
 	if (c != null) {
 	    edited_alarm_uid = c.get_uid();
-	    aa = new AddAlarm();
-	    aa.show(win, edje_file, set_alarm_);
+	    (aa = new AddAlarm()).show(win, edje_file, set_alarm_);
 	    aa.set_data(c);
 	} else {
 	    message("You must select a single alarm to be edited",
