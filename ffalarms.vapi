@@ -33,3 +33,26 @@ public int dbus_bus_release_name(
 DBus.Object dbus_g_proxy_new_for_name_owner(
     DBus.Connection connection,
     string name, string path, string? interface_ = null) throws DBus.Error;
+
+[CCode (cname = "Evas_Object_Event_Cb", instance_pos = 0)]
+public delegate void ObjectEventCallback(
+    Evas.Canvas e, Evas.Object obj, void* event_info);
+
+public void evas_object_event_callback_add(
+    Evas.Object self, Evas.CallbackType type, ObjectEventCallback func);
+
+[Flags]
+[CCode (cprefix = "EVAS_BUTTON_", cname = "Evas_Button_Flags")]
+public enum ButtonFlags
+{
+    NONE,
+    DOUBLE_CLICK,
+    TRIPLE_CLICK
+}
+
+[Compact]
+[CCode (cname = "Evas_Event_Mouse_Down")]
+public class EventMouseDown
+{
+    public ButtonFlags flags;
+}

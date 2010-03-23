@@ -1238,7 +1238,7 @@ class AckWin : BaseWin
 	win.resize_object_add(r);
 	r.color_set(0, 0, 0, 0);
 	r.repeat_events_set(true);
-	r.event_callback_add(Evas.CallbackType.MOUSE_DOWN, snooze_clicked);
+	evas_object_event_callback_add(r, Evas.CallbackType.MOUSE_DOWN, snooze_clicked);
 	r.show();
 
 	win.resize(480, 640);
@@ -1247,8 +1247,8 @@ class AckWin : BaseWin
 
     void snooze_clicked(Evas.Canvas e, Evas.Object obj, void *event_info)
     {
-	var ev = (Evas.EventMouseDown *) event_info;
-	if ((ev->flags & Evas.ButtonFlags.DOUBLE_CLICK) != 0) {
+	var ev = (EventMouseDown *) event_info;
+	if ((ev->flags & ButtonFlags.DOUBLE_CLICK) != 0) {
 	    try {
 		alarm.Snooze(uid);
 	    } catch (DBus.Error e) {
