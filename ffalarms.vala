@@ -2140,8 +2140,11 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     {
 	if (audio != null && !scenario_pushed) {
 	    try {
-		audio.PushScenario("stereoout");
-		scenario_pushed = true;
+		string scenario = audio.GetScenario();
+		if (scenario != "stereoout") {
+		    audio.PushScenario("stereoout");
+		    scenario_pushed = true;
+		}
 	    } catch (DBus.Error e) {
 		debug("D-Bus error: %s", e.message);
 	    }
