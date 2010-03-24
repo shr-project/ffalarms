@@ -272,6 +272,7 @@ class NextAlarm
 {
     public unowned Component comp;
     public ICal.Time next;
+    static Regex rrule_re;
 
     public string to_string(string summary_prefix=" ")
     {
@@ -279,7 +280,7 @@ class NextAlarm
 				   .format("%a %b %d %X %Y"));
 	unowned Property p = comp.get_first_property(PropertyKind.RRULE);
 	if (p != null)
-	    sb.append_printf(" (%s)", p.as_ical_string().strip());
+	    sb.append_printf(" (%s)", rrule_str(p));
 	unowned string s = comp.get_summary();
 	if (s != null && s.length > 0)
 	    sb.append_printf("%s%s", summary_prefix, s);
@@ -293,11 +294,27 @@ class NextAlarm
 				       .format("%a %b %d %X %Y"));
 	    unowned Property p = comp.get_first_property(PropertyKind.RRULE);
 	    if (p != null)
-		sb.append_printf(" (%s)", p.as_ical_string().strip());
+		sb.append_printf(" (%s)", rrule_str(p));
 	    return sb.str;
 	} else {
 	    return comp.get_summary() ?? "";
 	}
+    }
+
+    static string rrule_str(Property p)
+    {
+	var s = p.as_ical_string().strip();
+	MatchInfo m;
+	if (rrule_re == null)
+	    try {
+		rrule_re = new Regex("RRULE:FREQ=([A-Z]+)$");
+	    } catch (RegexError e) {
+		assert_not_reached();
+	    }
+	if (rrule_re.match(s, 0, out m))
+	    return m.fetch(1).down();
+	else
+	    return s;
     }
 }
 
