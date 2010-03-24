@@ -285,22 +285,38 @@ class NextAlarm
 	    sb.append_printf("%s%s", summary_prefix, s);
 	return sb.str;
     }
+
+    public string get_label(string part)
+    {
+	if (part == "elm.text") {
+	    var sb = new StringBuilder(GLib.Time.local(next.as_timet())
+				       .format("%a %b %d %X %Y"));
+	    unowned Property p = comp.get_first_property(PropertyKind.RRULE);
+	    if (p != null)
+		sb.append_printf(" (%s)", p.as_ical_string().strip());
+	    return sb.str;
+	} else {
+	    return comp.get_summary() ?? "";
+	}
+    }
 }
 
 
 /**
  * NOTE: if alarms parameter is deleted, result is no longer valid
  */
-SList<NextAlarm> list_future_alarms(Component alarms)
+NextAlarm[] list_future_alarms(Component alarms)
 {
-    var L = new SList<NextAlarm>();
+    var arr = new NextAlarm[0];
     foreach (var c in alarms.begin_component(ComponentKind.ANY)) {
 	var next = next_alarm_as_utc(c);
 	if (! next.is_null_time())
-	    L.prepend(new NextAlarm() { comp=c, next=next} );
+	    arr += new NextAlarm() { comp=c, next=next };
     }
-    L.sort((a, b) => ((NextAlarm)a).next.compare(((NextAlarm)b).next));
-    return L;
+    Posix.qsort_r(arr, arr.length, sizeof(NextAlarm),
+		  (a, b) => (((NextAlarm **)a)[0])->next.compare(
+		      (((NextAlarm **)b)[0])->next), null);
+    return arr;
 }
 
 
@@ -1049,12 +1065,12 @@ class AddAlarm : BaseWin
 class Confirm : BaseWin
 {
     Buttons bs;
-    public delegate void Callback(ListItem item);
+    public delegate void Callback(string item);
     Callback yes_cb;
-    unowned ListItem item;
+    unowned string item;
 
     public Confirm(Win? parent, string msg, string title,
-		   Confirm.Callback cb, ListItem item)
+		   Confirm.Callback cb, string item)
     {
 	yes_cb = cb;
 	this.item = item;
@@ -1371,47 +1387,43 @@ class LEDClock
 
 class Alarms
 {
-    public Elm.List lst;
-    HashTable<ListItem,unowned Component?> items;
+    public Genlist lst;
+    GenlistItemClass itc;
     Component alarms;
-    Config cfg;
+    NextAlarm[] future;
 
-    public Alarms(Elm.Object? parent, Config cfg)
+    public Alarms(Elm.Object parent)
     {
-	lst = new Elm.List(parent);
-	this.cfg = cfg;
+	lst = new Genlist(parent);
+	itc.item_style = "double_label";
+	itc.func.label_get = (GenlistItemLabelGetFunc) get_label;
     }
 
-    public void update(Config cfg) throws MyError, GLib.Error
+    public void update(Config cfg) throws MyError
     {
+	if (alarms != null)
+	    lst.clear();
 	alarms = list_alarms(cfg);
-	items = new HashTable<ListItem,unowned Component?>(null, null);
-	foreach (unowned NextAlarm a in list_future_alarms(alarms))
-	    items.insert(lst.append(a.to_string(": "), null, null, null), a.comp);
-	lst.go();
+	future = list_future_alarms(alarms);
+	foreach (unowned NextAlarm a in future)
+	    lst.item_append(itc, a, null, Elm.GenlistItemFlags.NONE, null);
     }
 
-    public void delete_alarm(ListItem item) throws MyError
+    public unowned NextAlarm? selected_item_get()
     {
-	try {
-	    // XXX delete_alarm could take event as argument
-	    Ffalarms.delete_alarm(items.lookup(item).get_uid(), cfg);
-	} catch (MyError e) {
-	    throw new MyError.ERR(e.message);
-	}
-	// XXX would be nice to work from here:
-	// update();
-    }
-
-    public unowned ListItem selected_item_get()
-    {
-	return lst.selected_item_get();
+	unowned GenlistItem item = lst.selected_item_get();
+	return (item != null) ? (NextAlarm) item.data_get() : null;
     }
 
     public unowned Component? selected_alarm()
     {
-	unowned ListItem item = lst.selected_item_get();
-	return (item != null) ? items.lookup(item) : null;
+	unowned GenlistItem item = lst.selected_item_get();
+	return (item != null) ? ((NextAlarm) item.data_get()).comp : null;
+    }
+
+    static string get_label(void *data, Elm.Object? obj, string part)
+    {
+	return ((NextAlarm) data).get_label(part);
     }
 }
 
@@ -1584,7 +1596,6 @@ class MainWin : BaseWin
     Bg bg;
     Box bx;
     Buttons btns;
-    Frame fr;
     LEDClock clock;
     AddAlarm aa;
     AckWin ack;
@@ -1630,12 +1641,11 @@ class MainWin : BaseWin
 	win.resize_object_add(bx);
 	bx.show();
 
-	fr = new Frame(win);
-	fr.size_hint_weight_set(0.0, 1.0);
-	fr.size_hint_align_set(-1.0, -1.0);
-	fr.style_set("outdent_top");
-	bx.pack_end(fr);
-	fr.show();
+	alarms = new Alarms(win);
+	alarms.lst.size_hint_weight_set(1.0, 1.0);
+	alarms.lst.size_hint_align_set(-1.0, -1.0);
+	bx.pack_end(alarms.lst);
+	alarms.lst.show();
 
 	btns = new Buttons(win);
 	btns.add("Add", add_alarm);
@@ -1738,13 +1748,13 @@ class MainWin : BaseWin
 
     void show_delete_alarm()
     {
-	unowned ListItem item = alarms.selected_item_get();
+	unowned NextAlarm item = alarms.selected_item_get();
         if (item != null) {
 	    del = null;
 	    del = new Confirm(
 		null, "Do you really want to delete the alarm:\n\n%s"
-		.printf(item.label_get()),
-		"Delete alarm", delete_alarms, item);
+		.printf(item.to_string()),
+		"Delete alarm", this.delete_alarm, item.comp.get_uid());
 	    del.show();
         } else {
 	    message("No alarm selected", "Delete alarm");
@@ -1774,10 +1784,10 @@ class MainWin : BaseWin
     // segfaults so the list owns the items (XXX unowned?)
     // XXX probably free_function="" try
 
-    public void delete_alarms(ListItem item)
+    public void delete_alarm(string uid)
     {
 	try {
-	    alarms.delete_alarm(item);
+	    Ffalarms.delete_alarm(uid, cfg);
 	} catch (MyError e) {
 	    message(e.message, "Delete alarms");
 	}
@@ -1788,16 +1798,11 @@ class MainWin : BaseWin
 
     public void update_alarms()
     {
-	alarms = new Alarms(win, cfg);
 	try {
 	    alarms.update(cfg);
 	} catch (MyError e) {
 	    message(e.message);
-	} catch (GLib.Error e) {
-	    message(e.message);
 	}
-	alarms.lst.show();
-	fr.content_set(alarms.lst);
     }
 }
 
