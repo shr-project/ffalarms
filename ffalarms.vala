@@ -103,11 +103,13 @@ export FFALARMS_UID FFALARMS_ATD_SCRIPT""".printf(Shell.quote(e.get_uid()));
 }
 
 
-void schedule_alarms(Config cfg) throws MyError
+void schedule_alarms(Config cfg, Component? alarms=null) throws MyError
 {
     // We schedule one occurence for each alarm as we do not yet have
     // a concept of unacknowledged past alarms
-    var alarms = list_alarms(cfg);
+    Component alarms_;
+    if (alarms == null)
+	alarms = alarms_ = list_alarms(cfg);
     var scheduled_alarms = list_scheduled_alarms(cfg);
     foreach (var c in alarms.begin_component()) {
 	var next = next_alarm_as_utc(c);
@@ -1406,7 +1408,7 @@ class Alarms
 {
     public Genlist lst;
     GenlistItemClass itc;
-    Component alarms;
+    public Component alarms;
     NextAlarm[] future;
 
     public Alarms(Elm.Object parent)
@@ -1683,18 +1685,18 @@ class MainWin : BaseWin
 		    .printf(e.message), "Error reading config file");
 	    cfg.use_defaults();
 	}
-	this.schedule_alarms();
 	update_alarms();
+	this.schedule_alarms(alarms.alarms);
 	(void *) new EventHandler(EventType.SIGNAL_USER, sig_user);
 
 	win.resize(480, 640);
 	win.show();
     }
 
-    void schedule_alarms()
+    void schedule_alarms(Component? alarms=null)
     {
 	try {
-	    Ffalarms.schedule_alarms(cfg);
+	    Ffalarms.schedule_alarms(cfg, alarms);
 	} catch (MyError e) {
 	    message("%s\nAlarms may not work."
 		    .printf(e.message), "Error while scheduling alarms");
