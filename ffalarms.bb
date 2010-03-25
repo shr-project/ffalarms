@@ -30,10 +30,12 @@ do_install() {
 	oe_runmake install DESTDIR=${D} SYSCONFDIR=${sysconfdir}
 }
 
-pkg_postinst() {
-	/etc/init.d/dbus-1 reload
+pkg_postinst_${PN}() {
+#!/bin/sh
+/etc/init.d/dbus-1 reload
 }
 
-pkg_postrm() {
-	/etc/init.d/dbus-1 reload
+pkg_postrm_${PN}() {
+#!/bin/sh
+/etc/init.d/dbus-1 reload
 }
