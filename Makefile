@@ -112,7 +112,7 @@ run: inst
 PN=ffalarms
 PV=${VERSION}
 PR=r0
-IPK=$(TOPDIR)/tmp/deploy/glibc/ipk/armv4t/$(PN)_$(PV)-$(PR)_armv4t.ipk
+IPK=$(TOPDIR)/tmp/deploy/ipk/armv4t/$(PN)_$(PV)-$(PR).4_armv4t.ipk
 
 TOPDIR=~/shr/shr-unstable
 RECIPE_DIR=~/shr/local/recipes
@@ -154,7 +154,7 @@ devshell: do-devshell
 rebuild: do-clean ipk-fast
 reinstall: rebuild ipk-inst
 
-EFL=~/local/src/e
+EFL=~/src/e
 tags:
 	etags --extra=q ffalarms.vala *.vala $(VAPIDIR)/*.vapi *.vapi \
 		$(EFL)/TMP/st/elementary/src/lib/*.c $(EFL)/eina/src/lib/*.c \
