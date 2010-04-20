@@ -2269,7 +2269,15 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    warning("dbus error: %s\n", err.message);
 	try {
 	    // register alarm
-	    alarm.SetAlarm(unique_name, (int)(time_t() + cfg.snooze_interval));
+	    try {
+		alarm.AddAlarm(unique_name,
+			       (int)(time_t() + cfg.snooze_interval));
+	    } catch (DBus.Error e) {
+		warning("could not AddAlarm (will try SetAlarm): dbus error: %s",
+			e.message);
+		alarm.SetAlarm(unique_name,
+			       (int)(time_t() + cfg.snooze_interval));
+	    }
 	    // SetAlarm is cheating, we have to wait to release CPU
 	    snoozing = true;
 	    if (action == Action.EXIT)
