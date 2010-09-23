@@ -1,0 +1,6 @@
+ffalarms
+ffalarms.c
+data/ffalarms.edj
+.configured
+*.o
+*.tar.gz
