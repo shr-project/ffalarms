@@ -1,9 +1,10 @@
-VERSION=0.4
+include config.mk
 
 FFALARMS_FILES=\
 COPYING \
 README \
 Makefile \
+config.mk \
 ffalarms.bb \
 ffalarms.vala \
 ffalarms.vapi \
@@ -17,32 +18,6 @@ data/ffalarms.conf \
 images/circle.png \
 images/ffalarms.png \
 images/ffalarms.svg
-
-PREFIX=/usr
-SYSCONFDIR=/etc
-PKG = elementary gobject-2.0 dbus-glib-1 libical
-PKG_CFLAGS = `pkg-config --cflags ${PKG}`
-PKG_LDFLAGS = `pkg-config --libs ${PKG}`
-
-# XXX this is local conf
-VALAC=valac
-VAPIDIR = $(HOME)/src/libeflvala/vapi
-VALAFLAGS = --vapidir=${VAPIDIR} --vapidir=. \
-	--pkg=elm --pkg=edje --pkg=dbus-glib-1 --pkg=posix --pkg=libical
-
-SHR=${HOME}/shr/shr-unstable
-NATIVE_BIN=$(SHR)/tmp/staging/i686-linux/usr/bin
-CROSS_CC=$(SHR)/tmp/cross/armv4t/bin/arm-oe-linux-gnueabi-gcc -march=armv4t
-CROSS_STAGING_DIR=$(SHR)/tmp/staging/armv4t-oe-linux-gnueabi
-CROSS_PKG_CONFIG_PATH=${CROSS_STAGING_DIR}/usr/lib/pkgconfig
-CROSS_PKG_CONFIG=PKG_CONFIG_PATH=${CROSS_PKG_CONFIG_PATH} \
-	PKG_CONFIG_SYSROOT_DIR=${CROSS_STAGING_DIR} \
-	${NATIVE_BIN}/pkg-config
-CROSS_CFLAGS = `${CROSS_PKG_CONFIG} --cflags ${PKG}`
-CROSS_LDFLAGS = `${CROSS_PKG_CONFIG} --libs ${PKG}`
-
-NEO=192.168.0.202
-
 
 all: ffalarms data/ffalarms.edj
 
@@ -109,14 +84,6 @@ run: inst
 	ssh ${NEO} '. /etc/profile; \
 		DISPLAY=:0 ~/tmp/ffalarms --edje ~/tmp/ffalarms.edj -l'
 
-PN=ffalarms
-PV=${VERSION}
-PR=r0
-IPK=$(TOPDIR)/tmp/deploy/ipk/armv4t/$(PN)_$(PV)-$(PR).4_armv4t.ipk
-
-TOPDIR=~/shr/shr-unstable
-RECIPE_DIR=~/shr/local/recipes
-RECIPE=${RECIPE_DIR}/ffalarms/${PN}_${PV}.bb
 
 .PHONY: ipk ipk-fast ipk-info ipk-inst rebuild reinstall tags
 
@@ -154,7 +121,6 @@ devshell: do-devshell
 rebuild: do-clean ipk-fast
 reinstall: rebuild ipk-inst
 
-EFL=~/src/e
 tags:
 	etags --extra=q ffalarms.vala *.vala $(VAPIDIR)/*.vapi *.vapi \
 		$(EFL)/TMP/st/elementary/src/lib/*.c $(EFL)/eina/src/lib/*.c \
