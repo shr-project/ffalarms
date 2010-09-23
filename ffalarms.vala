@@ -2017,7 +2017,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     dynamic DBus.Object usage;
     dynamic DBus.Object audio;
     dynamic DBus.Object xbus;
-    bool scenario_pushed = false;
     string uid;
     int[] saved_pcm_volume = {-1, -1};
 
@@ -2162,17 +2161,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 
     void begin_volume_inc_loop()
     {
-	if (audio != null && !scenario_pushed) {
-	    try {
-		string scenario = audio.GetScenario();
-		if (scenario != "stereoout") {
-		    audio.PushScenario("stereoout");
-		    scenario_pushed = true;
-		}
-	    } catch (DBus.Error e) {
-		debug("D-Bus error: %s", e.message);
-	    }
-	}
 	if (cfg.alarm_volume_initial == -1)
 	    return;
 	if (mixer == null) {
@@ -2243,14 +2231,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 			 saved_pcm_volume[0], saved_pcm_volume[1]);
 	    mixer.flush();
 	    saved_pcm_volume[0] = -1;
-	}
-	if (scenario_pushed) {
-	    try {
-		string s = audio.PullScenario();
-		scenario_pushed = false;
-	    } catch (DBus.Error e) {
-		debug("D-Bus error: %s", e.message);
-	    }
 	}
     }
 
