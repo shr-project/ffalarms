@@ -2368,6 +2368,7 @@ class Main {
 
     public static void main(string[] args)
     {
+	signal(SIGUSR1, SIG_IGN);
 	new Main();	       // just to initialize static fields
 	if (args.length > 1)
 	    process_args(ref args);
