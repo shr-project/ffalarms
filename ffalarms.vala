@@ -1884,28 +1884,32 @@ public class Config
 		(filename != null) ? filename : expand_home(DEFAULT_CONFIG),
 		KeyFileFlags.NONE);
 	    ini.set_list_separator(',');
-	    if (ini.has_key("alarm", "file"))
-		alarm_file = expand_home(ini.get_value("alarm", "file"));
-	    if (ini.has_key("alarm", "player"))
-		player = ini.get_value("alarm", "player");
-	    if (ini.has_key("alarm", "repeat"))
-		repeat = ini.get_integer("alarm", "repeat");
-	    else if (ini.has_key("alarm", "file") ||
-		     ini.has_key("alarm", "player"))
-		repeat = 1;
-	    if (ini.has_key("alarm", "alarm_script"))
-		alarm_script = expand_home(ini.get_value("alarm",
-							 "alarm_script"));
-	    if (ini.has_key("alarm", "volume"))
-		read_alarm_volume();
-	    if (ini.has_key("alarm", "snooze"))
-		read_snooze();
-	    time_24hr_format = (ini.has_key("ledclock", "24hr_format")) ?
-		ini.get_boolean("ledclock", "24hr_format") : false;
-	    brightness = (ini.has_key("ledclock", "brightness")) ?
-		ini.get_integer("ledclock", "brightness") : BRIGHTNESS;
-	    if (ini.has_key("ledclock", "color"))
-		led_color = get_color("ledclock", "color");
+	    if (ini.has_group("alarm")) {
+		if (ini.has_key("alarm", "file"))
+		    alarm_file = expand_home(ini.get_value("alarm", "file"));
+		if (ini.has_key("alarm", "player"))
+		    player = ini.get_value("alarm", "player");
+		if (ini.has_key("alarm", "repeat"))
+		    repeat = ini.get_integer("alarm", "repeat");
+		else if (ini.has_key("alarm", "file") ||
+			 ini.has_key("alarm", "player"))
+		    repeat = 1;
+		if (ini.has_key("alarm", "alarm_script"))
+		    alarm_script = expand_home(ini.get_value("alarm",
+							     "alarm_script"));
+		if (ini.has_key("alarm", "volume"))
+		    read_alarm_volume();
+		if (ini.has_key("alarm", "snooze"))
+		    read_snooze();
+	    }
+	    if (ini.has_group("ledclock")) {
+		time_24hr_format = (ini.has_key("ledclock", "24hr_format")) ?
+		    ini.get_boolean("ledclock", "24hr_format") : false;
+		brightness = (ini.has_key("ledclock", "brightness")) ?
+		    ini.get_integer("ledclock", "brightness") : BRIGHTNESS;
+		if (ini.has_key("ledclock", "color"))
+		    led_color = get_color("ledclock", "color");
+	    }
 	} catch (KeyFileError e) {
 	    throw new MyError.CONFIG(e.message);
 	} catch (FileError e) {
