@@ -1653,6 +1653,8 @@ class MainWin : BaseWin
     public void show()
     {
 	win = new Win(null, "main", WinType.BASIC);
+	if (win == null)
+	    die("cannot create main window");
 	win.title_set("Alarms");
 	win.smart_callback_add("delete-request", close);
 	msgs = new InwinMessageQueue(win);
@@ -2380,6 +2382,8 @@ class Main {
 	new Main();	       // just to initialize static fields
 	if (args.length > 1)
 	    process_args(ref args);
+	else if (args.length == 1)
+	    Environment.set_prgname(Path.get_basename(args[0]));
 	Elm.init(args);
 	try {
 	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
