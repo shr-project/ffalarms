@@ -85,15 +85,23 @@ throws MyError, FileError
 	throw new MyError.CONFIG(
 	    "Could not contact atd daemon, the alarm was not set");
     var filename = Path.build_filename(
-	cfg.at_spool, "%ld.ffalarms.%ld".printf(timestamp, getpid()));
+	cfg.at_spool, "%ld.ffalarms.%s".printf(
+	    timestamp, Uri.escape_string(e.get_uid(), "@", false)));
     FileUtils.get_contents(cfg.alarm_script, out alarm_sh);
     var header = """FFALARMS_UID=%s
 FFALARMS_ATD_SCRIPT="$0"
 export FFALARMS_UID FFALARMS_ATD_SCRIPT""".printf(Shell.quote(e.get_uid()));
+    int fd = open(filename, O_CREAT | O_EXCL);
+    if (fd == -1)
+	return; // XXX tmp silently ignored to schedule next alarms
+    close(fd);
+    if (lstat(filename, out st) != 0 || !S_ISREG(st.st_mode))
+	return; // XXX tmp silently ignored to schedule next alarms
+    close(fd);
     FileUtils.set_contents(
 	filename, alarm_sh.printf(header, repeat, Shell.quote(alarm_cmd)));
     FileUtils.chmod(filename, 0755);
-    int fd = open(trig, O_WRONLY | O_NONBLOCK);
+    fd = open(trig, O_WRONLY | O_NONBLOCK);
     bool atd_error = (fd == -1 || fstat(fd, out st) != 0 ||
 		      !S_ISFIFO(st.st_mode) || write(fd, "\n", 1) != 1);
     if (fd != -1)

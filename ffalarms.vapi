@@ -56,3 +56,6 @@ public class EventMouseDown
 {
     public ButtonFlags flags;
 }
+
+[CCode (cheader_filename = "sys/stat.h")]
+int lstat(string filename, out Posix.Stat buf);
