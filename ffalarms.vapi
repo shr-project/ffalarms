@@ -21,7 +21,7 @@ public Posix.sighandler_t SIG_IGN;
 public GLib.FileStream? popen(string cmd, string mode);
 
 [CCode (cheader_filename="stdlib.h")]
-public long strtol(string s, out weak string endptr = null, int _base = 0);
+public long strtol(string s, out unowned string endptr = null, int _base = 0);
 
 public unowned string dbus_bus_get_unique_name(DBus.RawConnection connection);
 public int dbus_bus_request_name(

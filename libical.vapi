@@ -974,7 +974,7 @@ namespace ICal {
 		    return this;
 		}
 		public ICal.ComponentKind kind;
-		public weak ICal.PvlElem iter;
+		public unowned ICal.PvlElem iter;
 		[CCode (cname = "icalcompiter_deref")]
 		public unowned ICal.Component deref ();
 		[CCode (cname = "icalcompiter_next")]
@@ -995,23 +995,23 @@ namespace ICal {
 		public short interval;
 		public ICal.RecurrenceWeekday week_start;
 		[CCode (array_length = false)]
-		public weak short[] by_second;
+		public unowned short[] by_second;
 		[CCode (array_length = false)]
-		public weak short[] by_minute;
+		public unowned short[] by_minute;
 		[CCode (array_length = false)]
-		public weak short[] by_hour;
+		public unowned short[] by_hour;
 		[CCode (array_length = false)]
-		public weak short[] by_day;
+		public unowned short[] by_day;
 		[CCode (array_length = false)]
-		public weak short[] by_month_day;
+		public unowned short[] by_month_day;
 		[CCode (array_length = false)]
-		public weak short[] by_year_day;
+		public unowned short[] by_year_day;
 		[CCode (array_length = false)]
-		public weak short[] by_week_no;
+		public unowned short[] by_week_no;
 		[CCode (array_length = false)]
-		public weak short[] by_month;
+		public unowned short[] by_month;
 		[CCode (array_length = false)]
-		public weak short[] by_set_pos;
+		public unowned short[] by_set_pos;
 		[CCode (cname = "icalrecurrencetype_as_string")]
 		public static unowned string as_string (ref ICal.Recurrence recur);
 		[CCode (cname = "icalrecurrencetype_as_string_r")]
@@ -1035,7 +1035,7 @@ namespace ICal {
 		public int minute;
 		public int second;
 		public bool is_daylight;
-		public weak ICal.TimeZone zone;
+		public unowned ICal.TimeZone zone;
 		public ICal.Time add (void* d);
 		public static void adjust (ICal.Time tt, int days, int hours, int minutes, int seconds);
 		public unowned string as_ical_string ();
@@ -2072,5 +2072,5 @@ namespace ICal {
 }
 namespace ICal {
 	[CCode (has_target=false, cname="char* (*)(char *s, size_t size, void *d)")]
-	public delegate weak string LineGenFunc (char[] s, void* data);
+	public delegate unowned string LineGenFunc (char[] s, void* data);
 }
