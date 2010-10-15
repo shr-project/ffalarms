@@ -427,7 +427,7 @@ bool kill_running_alarms(string at_spool)
     MatchInfo m;
     Posix.Stat st;
 
-    FileStream? f = popen("ps -ef", "r");
+    FileStream? f = (FileStream) FILE.popen("ps -ef", "r");
     if (f == null) {
 	error("could not exec ps");
 	return false;
@@ -1195,8 +1195,8 @@ class AckWin : BaseWin
 	    // XXX night hack
 	    while (true) {
 		try {
-		    alarm = dbus_g_proxy_new_for_name_owner(
-			Main.bus, DBUS_NAME, "/", DBUS_NAME);
+		    alarm = Main.bus.get_object_for_name_owner(
+			DBUS_NAME, "/", DBUS_NAME);
 		    string a_uid = alarm.GetUID();
 		    int a_time = alarm.GetTime();
 		    if (uid == a_uid && time == a_time)
@@ -1754,8 +1754,7 @@ class MainWin : BaseWin
 	int time;
 
 	try {
-	    alarm = dbus_g_proxy_new_for_name_owner(Main.bus,
-						    DBUS_NAME, "/", DBUS_NAME);
+	    alarm = Main.bus.get_object_for_name_owner(DBUS_NAME, "/", DBUS_NAME);
 	    uid = alarm.GetUID();
 	    time = alarm.GetTime();
 	} catch (DBus.Error e) {
@@ -2057,8 +2056,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	ml = new GLib.MainLoop(null, false);
 	try {
 	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	    unique_name = dbus_bus_get_unique_name(
-		(DBus.RawConnection*)bus.get_connection());
+	    unique_name = bus.get_connection().get_unique_name();
 	} catch (DBus.Error e) {
 	    debug("dbus error: %s", e.message);
 	}
@@ -2158,9 +2156,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     {
 	if (bus != null) {
 	    var err = DBus.RawError();
-	    int reply = dbus_bus_request_name(
-		(DBus.RawConnection*)bus.get_connection(),
-		DBUS_NAME, 0, ref err);
+	    int reply = bus.get_connection().request_name(DBUS_NAME, 0, ref err);
 	    if (err.is_set()) {
 		warning("dbus error: %s\n", err.message);
 	    } else if (reply == DBus.RequestNameReply.IN_QUEUE) {
@@ -2257,8 +2253,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    "org.freesmartphone.Time.Alarm");
 	// XXX if we release name after SetAlarm notification will not come
 	var err = DBus.RawError();
-	dbus_bus_release_name(
-	    (DBus.RawConnection*)bus.get_connection(), DBUS_NAME, ref err);
+	bus.get_connection().release_name(DBUS_NAME, ref err);
 	if (err.is_set())
 	    warning("dbus error: %s\n", err.message);
 	try {
@@ -2501,8 +2496,8 @@ class Main {
 	if (kill) {
 	    try {
 		bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-		dynamic DBus.Object alarm = dbus_g_proxy_new_for_name_owner(
-		    bus, DBUS_NAME, "/", DBUS_NAME);
+		dynamic DBus.Object alarm = bus.get_object_for_name_owner(
+		    DBUS_NAME, "/", DBUS_NAME);
 		string uid = alarm.GetUID();
 		alarm.Stop(uid);
 	    } catch (DBus.Error e) {

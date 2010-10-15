@@ -26,6 +26,15 @@ all: ffalarms data/ffalarms.edj
 configure: .configured
 
 .configured:
+	@${VALAC} --version | awk \
+		'{ if ($$1 == "Vala" && 3 == split($$2, v, ".") && \
+			(v[1] > 0 || v[2] >= 8)) { \
+				exit 0 \
+			} else { \
+				print "error: valac >= 0.8.0 is required"; \
+				exit 1 \
+			} \
+		}'
 	pkg-config --print-errors --exists 'libical >= 0.44'
 	touch .configured
 
