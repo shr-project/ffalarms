@@ -26,7 +26,7 @@ all: ffalarms data/ffalarms.edj
 configure: .configured
 
 .configured:
-	pkg-config --atleast-version=0.44 libical
+	pkg-config --print-errors --exists 'libical >= 0.44'
 	touch .configured
 
 ffalarms: .configured ffalarms.o
