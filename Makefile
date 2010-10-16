@@ -27,7 +27,7 @@ configure: .configured
 
 .configured:
 	@${VALAC} --version | awk \
-		'{ if ($$1 == "Vala" && 3 == split($$2, v, ".") && \
+		'{ if ($$1 == "Vala" && split($$2, v, ".") >= 3 && \
 			(v[1] > 0 || v[2] >= 8)) { \
 				exit 0 \
 			} else { \
