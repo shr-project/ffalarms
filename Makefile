@@ -21,8 +21,6 @@ images/ffalarms.svg
 
 all: ffalarms data/ffalarms.edj
 
-.PHONY: all configure dist install clean
-
 configure: .configured
 
 .configured:
@@ -78,59 +76,39 @@ install: all
 		${DESTDIR}${SYSCONFDIR}/dbus-1/system.d/ffalarms.conf
 
 clean:
-	rm -f *.o ffalarms armv4t/ffalarms
+	rm -f ffalarms.o ffalarms data/ffalarms.edj
 
+tags:
+	etags --extra=q ffalarms.vala *.vapi
 
-armv4t/ffalarms: ffalarms.c
-	${CROSS_CC} ${CROSS_CFLAGS} ${CROSS_LDFLAGS} $< -o $@
+do_%:
+	bitbake -c $* -b ffalarms.bb
 
-.PHONY: inst run
+listtasks: do_listtasks
 
-inst: armv4t/ffalarms data/ffalarms.edj
-	rsync --archive data/ffalarms.edj armv4t/ffalarms ${NEO}:~/tmp/
+devshell: do_devshell
 
-run: inst
+ipk: clean do_clean do_package_write
+
+ipk-install:
+	scp -q ${IPK_DIR}/${IPK_BASENAME} ${NEO}:
+	ssh ${NEO} opkg install ${IPK_BASENAME}
+
+ipk-info:
+	dpkg --info ${IPK_DIR}/${IPK_BASENAME}
+	dpkg --contents ${IPK_DIR}/${IPK_BASENAME}
+	ls -lh ${IPK_DIR}/${IPK_BASENAME}
+
+cross-compile:
+	bitbake -f -c compile -b ffalarms.bb
+
+neo-install:
+	rsync --archive data/ffalarms.edj ffalarms ${NEO}:~/tmp/
+
+neo-run:
 	ssh ${NEO} '. /etc/profile; \
 		DISPLAY=:0 ~/tmp/ffalarms --edje ~/tmp/ffalarms.edj -l'
 
-
-.PHONY: ipk ipk-fast ipk-info ipk-inst rebuild reinstall tags
-
-# STRANGE: somehow does not work with dash, I went back to bash
-ipk: dist
-	mkdir -p $(RECIPE_DIR)/ffalarms
-	sed s/"r0"/"$(PR)"/ ffalarms.bb > ${RECIPE}
-	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake ffalarms-${PV}
-
-ipk-fast: dist
-	mkdir -p $(RECIPE_DIR)/ffalarms
-	sed s/"r0"/"$(PR)"/ ffalarms.bb > ${RECIPE}
-	cp -f ffalarms-$(PV).tar.gz $(RECIPE_DIR)/ffalarms
-	cd ${TOPDIR} && . ${TOPDIR}/setup-env && \
-		bitbake -c package_write -b ${RECIPE}
-
-ipk-info:
-	dpkg -I $(IPK)
-	dpkg -c $(IPK)
-	ls -lh $(IPK)
-
-ipk-inst:
-	rsync $(IPK) root@${NEO}:
-	ssh root@${NEO} opkg install -force-reinstall `basename $(IPK)`
-
-full-do-%:
-	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* ffalarms-${PV}
-
-do-%:
-	cd ${TOPDIR} && . ${TOPDIR}/setup-env && bitbake -c $* -b ${RECIPE}
-
-listtasks: do-listtasks
-devshell: do-devshell
-rebuild: do-clean ipk-fast
-reinstall: rebuild ipk-inst
-
-tags:
-	etags --extra=q ffalarms.vala *.vala $(VAPIDIR)/*.vapi *.vapi \
-		$(EFL)/TMP/st/elementary/src/lib/*.c $(EFL)/eina/src/lib/*.c \
-		/usr/share/vala/vapi/glib-2.0.vapi /usr/share/vala/vapi/posix.vapi
+.PHONY: all configure dist install clean tags
+.PHONY: listtasks devshell ipk ipk-install ipk-info
+.PHONY: cross-compile neo-install neo-run
