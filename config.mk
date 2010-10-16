@@ -9,7 +9,7 @@ PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 VALAC=valac
 VALAFLAGS = --vapidir=. --pkg=elm --pkg=edje --pkg=dbus-glib-1 \
 	--pkg=posix --pkg=libical
-CC = cc
+CC ?= cc
 
 OE_TOPDIR = `which bitbake | sed s:/bitbake/bin/bitbake::`
 NEO = root@192.168.0.202
