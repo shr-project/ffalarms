@@ -3,7 +3,7 @@ VERSION=0.4
 
 PREFIX=/usr
 SYSCONFDIR=/etc
-PKG = elementary gobject-2.0 dbus-glib-1 libical
+PKG = elementary ecore evas edje gobject-2.0 dbus-glib-1 libical
 PKG_CFLAGS = `pkg-config --cflags ${PKG}`
 PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 VALAC=valac
