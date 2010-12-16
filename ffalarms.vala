@@ -2028,7 +2028,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     string unique_name;
     bool in_queue;
     dynamic DBus.Object usage;
-    dynamic DBus.Object audio;
     dynamic DBus.Object xbus;
     string uid;
     int[] saved_pcm_volume = {-1, -1};
@@ -2066,10 +2065,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 		"org.freesmartphone.Usage");
 	    request_resources();
 	    bus.register_object("/", this);
-	    audio = bus.get_object(
-		"org.freesmartphone.odeviced",
-		"/org/freesmartphone/Device/Audio",
-		"org.freesmartphone.Device.Audio");
 	    xbus = bus.get_object("org.freedesktop.DBus",
 				  "/org/freedesktop/DBus",
 				  "org.freedesktop.DBus");
