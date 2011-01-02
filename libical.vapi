@@ -37,8 +37,11 @@ namespace ICal {
 		public void add_property (owned ICal.Property property);
 		public unowned string as_ical_string ();
 		public string as_ical_string_r ();
+		[SimpleType]
+		[CCode (cname="icalcompiter")]
+		public struct _CompIter {}
 		[CCode (cname="icalcomponent_begin_component")]
-		public void *_begin_component (ICal.ComponentKind kind);
+		public _CompIter _begin_component (ICal.ComponentKind kind);
 		[CCode (cname="icalcomponent_begin_component_wrapper")]
 		public ICal.CompIter begin_component (ICal.ComponentKind kind=ComponentKind.ANY) {
 			return (ICal.CompIter) _begin_component(kind);
