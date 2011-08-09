@@ -57,7 +57,7 @@ Ffalarms is written in Vala_ (0.7.7 is known to work).
 
 Requires:
 
-- `EFL Vala Bindings`_ (libeflvala)
+- `EFL Vala Bindings`_ (libeflvala) >= r62020
 - `libical`_
 - atd_ (may be atd-over-fso_ working on top of FSO_ platform)
 - ``alsa-utils-amixer`` ``ttf-dejavu-sans``
