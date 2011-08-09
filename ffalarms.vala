@@ -542,7 +542,7 @@ class CheckGroup
 	int i = 0;
 	foreach (var s in names) {
 	    var ck = new Check(parent);
-	    ck.label_set(s);
+	    ck.text_set(s);
 	    ck.size_hint_align_set(0.0, 0.0);
 	    ck.show();
 	    ck.state_set(true);
@@ -572,7 +572,7 @@ class BaseWin : Base
     {
 	var fr = new Frame(win);
 	unowned Frame result = fr;
-	fr.label_set(label);
+	fr.text_set(label);
 	fr.content_set(content);
 	fr.size_hint_align_set(-1.0, 0.0);
 	fr.show();
@@ -628,14 +628,14 @@ class Calendar : Base
 	cur_month.show();
 
 	var b = new Button(parent);
-	b.label_set("<");
+	b.text_set("<");
 	b.smart_callback_add("clicked", prev_month);
 	tb.pack(b, 0, 0, 1, 1);
 	b.show();
 	swallow((owned) b);
 
 	b = new Button(parent);
-	b.label_set(">");
+	b.text_set(">");
 	b.smart_callback_add("clicked", next_month);
 	tb.pack(b, 6, 0, 1, 1);
 	b.show();
@@ -644,7 +644,7 @@ class Calendar : Base
 	for (int i = 0; i < 7; ++i)
 	{
 	    var lb = new Label(parent);
-	    lb.label_set(days[i]);
+	    lb.text_set(days[i]);
 	    tb.pack(lb, i, 1, 1, 1);
 	    lb.show();
 	    swallow((owned) lb);
@@ -681,12 +681,12 @@ class Calendar : Base
 	int dim = first.get_month().get_days_in_month(first.get_year());
 	char[] s = new char[100];
 	first.strftime(s, "<b>%B %Y<b>");
-	cur_month.label_set((string) s);
+	cur_month.text_set((string) s);
 	for (int i = 0; i < DAY_BTNS_CNT; i++)
 	{
 	    int j = i - wday;
 	    if (j >= 0 && j < dim) {
-		day_btns[i].label_set((j + 1).to_string());
+		day_btns[i].text_set((j + 1).to_string());
 		day_btns[i].show();
 	    } else {
 		day_btns[i].hide();
@@ -694,7 +694,7 @@ class Calendar : Base
 	}
 	if (today.get_month() == month && today.get_year() == year) {
 	    int j = today.get_day() - 1;
-	    day_btns[j + wday].label_set("[%d]".printf(j + 1));
+	    day_btns[j + wday].text_set("[%d]".printf(j + 1));
 	}
     }
 
@@ -736,7 +736,7 @@ class CalendarWin : BaseWin
 	var b = new Button(win);
 	b.size_hint_align_set(-1, -1);
 	b.smart_callback_add("clicked", close);
-	b.label_set("Close");
+	b.text_set("Close");
 	cal.tb.pack(b, 2, 7, 5, 1);
 	b.show();
 	swallow((owned) b);
@@ -828,7 +828,7 @@ class AddAlarm : BaseWin
     public void set_data(Component c)
     {
 	win.title_set("Edit alarm");
-	btns.buttons[0].label_set("Save");
+	btns.buttons[0].text_set("Save");
 	this.summary = c.get_summary();
 	var t = c.get_dtstart();
 	date.set_dmy((DateDay)t.day, t.month, (DateMonth)t.year);
@@ -977,7 +977,7 @@ class AddAlarm : BaseWin
 	if (date.valid())
 	    set_date_close_calendar(date);
 	else
-	    date_b.label_set("Nearest future date");
+	    date_b.text_set("Nearest future date");
 	date_b.smart_callback_add("clicked", select_date_from_calendar);
 	bx1.pack_end(date_b);
 	date_b.show();
@@ -1023,7 +1023,7 @@ class AddAlarm : BaseWin
 	    bx.pack_end(frame("Weekdays", wd.bx));
 	} else {
 	    var lb = new Label(win);
-	    lb.label_set(Recurrence.as_string(ref recur));
+	    lb.text_set(Recurrence.as_string(ref recur));
 	    bx.pack_end(frame("Recurrence", lb));
 	    swallow((owned) lb);
 	}
@@ -1055,7 +1055,7 @@ class AddAlarm : BaseWin
 	this.date = date;
 	char[] s = new char[100];
 	date.strftime(s, "%a %b %d %Y");
-	this.date_b.label_set((string) s);
+	this.date_b.text_set((string) s);
 	cal = null;
     }
 
@@ -1084,7 +1084,7 @@ class AddAlarm : BaseWin
 	}
 	recur.freq = freq;
 	if (this.freq != null)
-	    this.freq.label_set(label);
+	    this.freq.text_set(label);
 	return true;
     }
 }
@@ -1126,7 +1126,7 @@ class Confirm : BaseWin
 
 	var lb = new Label(win);
 	lb.line_wrap_set(true);
-	lb.label_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
+	lb.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	lb.size_hint_weight_set(1.0, 1.0);
 	lb.size_hint_align_set(-1.0, 0.5);
 	lb.show();
@@ -1238,7 +1238,7 @@ class AckWin : BaseWin
 
 	var lb = new Label(win);
 	lb.line_wrap_set(true);
-	lb.label_set(
+	lb.text_set(
 	    "<b>Acknowledge the running alarm</b><br><br>%s<br><br>%s"
 	    .printf(time_s ?? "",
 		    (summary != null) ?
@@ -1255,7 +1255,7 @@ class AckWin : BaseWin
 	swallow((owned) hbx);
 
 	lb = new Label(win);
-	lb.label_set("(double click anywhere to snooze)");
+	lb.text_set("(double click anywhere to snooze)");
 	bx.pack_end(lb);
 	lb.show();
 	swallow((owned) lb);
@@ -1484,7 +1484,7 @@ class Message
 	bx.pack_end(frame("pad_small"));
 	if (title != null) {
 	    tt = new Label(w);
-	    tt.label_set("<b>%s</b>".printf(title));
+	    tt.text_set("<b>%s</b>".printf(title));
 	    tt.show();
 	    bx.pack_end(tt);
 	    bx.pack_end(frame("pad_medium"));
@@ -1495,7 +1495,7 @@ class Message
 	hbx.pack_end(frame("pad_small"));
 	lb = new Label(w);
 	lb.line_wrap_set(true);
-	lb.label_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
+	lb.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	lb.size_hint_align_set(-1.0, 0.5); // fill horizontally
 	lb.size_hint_weight_set(1.0, 1.0); // expand
 	lb.show();
@@ -1505,7 +1505,7 @@ class Message
 	bx.pack_end(hbx);
 	bx.pack_end(frame("pad_medium"));
 	bt = new Button(w);
-	bt.label_set("  Ok  ");
+	bt.text_set("  Ok  ");
 	bt.scale_set(1.5);
 	bt.smart_callback_add("clicked", close);
 	bx.pack_end(bt);
@@ -1585,7 +1585,7 @@ class Buttons
 	unowned Button b;
 
 	b = buttons[idx++] = new Button(parent);
-	b.label_set(label);
+	b.text_set(label);
 	b.smart_callback_add("clicked", cb);
 	b.size_hint_weight_set(1.0, 0.0);
 	b.size_hint_align_set(-1.0, -1.0);
