@@ -1433,7 +1433,7 @@ class Alarms
 	alarms = list_alarms(cfg);
 	future = list_future_alarms(alarms);
 	foreach (unowned NextAlarm a in future)
-	    lst.item_append(itc, a, null, Elm.GenlistItemFlags.NONE, null);
+	    lst.item_append(ref itc, a, null, Elm.GenlistItemFlags.NONE, null);
     }
 
     public unowned NextAlarm? selected_item_get()
