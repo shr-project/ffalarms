@@ -7,7 +7,8 @@ PKG = elementary ecore evas edje gobject-2.0 dbus-glib-1 libical
 PKG_CFLAGS = `pkg-config --cflags ${PKG}`
 PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 VALAC=valac
-VALAFLAGS = --vapidir=. --pkg=elementary --pkg=edje --pkg=dbus-glib-1 \
+VAPIDIR = .
+VALAFLAGS = --vapidir=${VAPIDIR} --vapidir=. --pkg=elementary --pkg=edje --pkg=dbus-glib-1 \
 	--pkg=posix --pkg=libical
 CC ?= cc
 
