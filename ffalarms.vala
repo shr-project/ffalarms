@@ -20,6 +20,29 @@ using Ecore;
 using Posix;
 using ICal;
 
+[DBus (name = "org.freesmartphone.Device.Display")]
+interface Display : GLib.Object
+{
+    public abstract int get_brightness() throws DBus.Error;
+    public abstract void set_brightness(int value) throws DBus.Error;
+}
+
+[DBus (name = "org.freesmartphone.Time.Alarm")]
+interface FsoAlarm : GLib.Object
+{
+
+    public abstract void
+    add_alarm(string dbus_name, int time) throws DBus.Error;
+    public abstract void
+    set_alarm(string dbus_name, int time)  throws DBus.Error;
+}
+[DBus (name = "org.freesmartphone.Usage")]
+interface Usage : GLib.Object
+{
+    public abstract void request_resource(string name) throws DBus.Error;
+    public abstract void release_resource(string name) throws DBus.Error;
+}
+
 namespace Ffalarms {
 
 public const string VERSION = "0.4";
@@ -1172,13 +1195,13 @@ class AckWin : BaseWin
     public delegate void Acknowledge(string uid, time_t time);
     Acknowledge acknowledge;
     bool exit_when_closed;
-    dynamic DBus.Object alarm;
+    AlarmControler alarm;
     string uid;
     time_t time;
     string time_s;
     string summary;
 
-    public AckWin(dynamic DBus.Object alarm)
+    public AckWin(AlarmControler alarm)
     {
 	this.alarm = alarm;
     }
@@ -1188,14 +1211,14 @@ class AckWin : BaseWin
 	var uid = Environment.get_variable("FFALARMS_UID");
 	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
 	time_t time = (s != null) ? s.to_int() : 0;
-	dynamic DBus.Object alarm;
+	AlarmControler alarm;
 	if (uid == null) {
-	    alarm = Main.bus.get_object(DBUS_NAME, "/", DBUS_NAME);
+	    alarm = (AlarmControler) Main.bus.get_object(DBUS_NAME, "/");
 	} else {
 	    // XXX night hack
 	    while (true) {
 		try {
-		    alarm = Main.bus.get_object_for_name_owner(
+		    alarm = (AlarmControler) Main.bus.get_object_for_name_owner(
 			DBUS_NAME, "/", DBUS_NAME);
 		    string a_uid = alarm.GetUID();
 		    int a_time = alarm.GetTime();
@@ -1397,13 +1420,12 @@ class LEDClock
 	if (value == -1 && brightness == -1 || Main.bus == null)
 	    return;
 	try {
-	    dynamic DBus.Object display = Main.bus.get_object(
+	    var display = (Display) Main.bus.get_object(
 		"org.freesmartphone.odeviced",
-		"/org/freesmartphone/Device/Display/0",
-		"org.freesmartphone.Device.Display");
+		"/org/freesmartphone/Device/Display/0");
 	    if (brightness == -1)
-		brightness = display.GetBrightness();
-	    display.SetBrightness((value != -1) ? value : brightness);
+		brightness = display.get_brightness();
+	    display.set_brightness((value != -1) ? value : brightness);
 	    if (value == -1)
 		brightness = -1;
 	} catch (DBus.Error e) {
@@ -1749,12 +1771,12 @@ class MainWin : BaseWin
 
     void show_ack()
     {
-	dynamic DBus.Object alarm;
+	AlarmControler alarm;
 	string uid;
 	int time;
 
 	try {
-	    alarm = Main.bus.get_object_for_name_owner(DBUS_NAME, "/", DBUS_NAME);
+	    alarm = (AlarmControler) Main.bus.get_object_for_name_owner(DBUS_NAME, "/", DBUS_NAME);
 	    uid = alarm.GetUID();
 	    time = alarm.GetTime();
 	} catch (DBus.Error e) {
@@ -1990,12 +2012,12 @@ public class Config
 
 
 [DBus (name = "org.freesmartphone.Notification")]
-interface Notification {
+interface Notification : GLib.Object {
     public abstract void alarm() throws DBus.Error;
 }
 
 [DBus (name = "org.openmoko.projects.ffalarms.alarm")]
-interface AlarmControler {
+interface AlarmControler : GLib.Object {
     public abstract string GetUID() throws DBus.Error;
     public abstract int GetTime() throws DBus.Error;
     public abstract void Snooze(string uid) throws DBus.Error;
@@ -2027,7 +2049,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     DBus.Connection bus;
     string unique_name;
     bool in_queue;
-    dynamic DBus.Object usage;
+    Usage usage;
     dynamic DBus.Object xbus;
     string uid;
     int[] saved_pcm_volume = {-1, -1};
@@ -2060,9 +2082,8 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    debug("dbus error: %s", e.message);
 	}
 	if (bus != null) {
-	    usage = bus.get_object(
-		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage",
-		"org.freesmartphone.Usage");
+	    usage = (Usage) bus.get_object(
+		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage");
 	    request_resources();
 	    bus.register_object("/", this);
 	    xbus = bus.get_object("org.freedesktop.DBus",
@@ -2080,8 +2101,8 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 
     void request_resources()
     {
-	usage.RequestResource("CPU", async_result);
-	usage.RequestResource("Display", async_result);
+	usage.request_resource("CPU");
+	usage.request_resource("Display");
     }
 
     void async_result(GLib.Error e) {
@@ -2242,10 +2263,9 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     void snooze()
     {
 	cnt = repeat;
-	usage.ReleaseResource("Display", async_result);
-	dynamic DBus.Object alarm = bus.get_object(
-	    "org.freesmartphone.otimed", "/org/freesmartphone/Time/Alarm",
-	    "org.freesmartphone.Time.Alarm");
+	usage.release_resource("Display");
+	var alarm = (FsoAlarm) bus.get_object(
+	    "org.freesmartphone.otimed", "/org/freesmartphone/Time/Alarm");
 	// XXX if we release name after SetAlarm notification will not come
 	var err = DBus.RawError();
 	bus.get_connection().release_name(DBUS_NAME, ref err);
@@ -2254,12 +2274,12 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	try {
 	    // register alarm
 	    try {
-		alarm.AddAlarm(unique_name,
+		alarm.add_alarm(unique_name,
 			       (int)(time_t() + cfg.snooze_interval));
 	    } catch (DBus.Error e) {
 		warning("could not AddAlarm (will try SetAlarm): dbus error: %s",
 			e.message);
-		alarm.SetAlarm(unique_name,
+		alarm.set_alarm(unique_name,
 			       (int)(time_t() + cfg.snooze_interval));
 	    }
 	    // SetAlarm is cheating, we have to wait to release CPU
@@ -2275,7 +2295,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 
     bool _snooze()
     {
-	usage.ReleaseResource("CPU", async_result);
+	usage.release_resource("CPU");
 	return false;
     }
 
@@ -2491,7 +2511,7 @@ class Main {
 	if (kill) {
 	    try {
 		bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-		dynamic DBus.Object alarm = bus.get_object_for_name_owner(
+		AlarmControler alarm = (AlarmControler) bus.get_object_for_name_owner(
 		    DBUS_NAME, "/", DBUS_NAME);
 		string uid = alarm.GetUID();
 		alarm.Stop(uid);
