@@ -40,7 +40,7 @@ ffalarms: .configured ffalarms.o
 	${CC} ${LDFLAGS} ${PKG_LDFLAGS} ffalarms.o -o $@
 
 ffalarms.o: ffalarms.c
-	${CC} -c ${CFLAGS} ${PKG_CFLAGS} $< -o $@
+	${CC} -c -D_GNU_SOURCE ${CFLAGS} ${PKG_CFLAGS} $< -o $@
 
 ffalarms.c: ffalarms.vala ffalarms.vapi libical.vapi
 	${VALAC} ${VALAFLAGS} -C $< ffalarms.vapi
