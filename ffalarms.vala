@@ -1597,7 +1597,7 @@ class Buttons
 	box.size_hint_weight_set(1.0, 0.0);
 	box.size_hint_align_set(-1.0, -1.0);
 	box.horizontal_set(true);
-	box.homogenous_set(true);
+	box.homogeneous_set(true);
 	box.show();
 	this.parent = parent;
     }
