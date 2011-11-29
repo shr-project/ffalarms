@@ -20,11 +20,25 @@ using Ecore;
 using Posix;
 using ICal;
 
+
+[DBus (name = "org.freedesktop.DBus")]
+interface FreeDesktopBus : GLib.Object
+{
+    public abstract string get_name_owner(string name) throws IOError;
+}
+
+T get_proxy_sync_for_name_owner<T>(BusType bus_type, string name, string path)
+throws IOError
+{
+    FreeDesktopBus bus = Bus.get_proxy_sync(bus_type, "org.freedesktop.DBus", "/");
+    return Bus.get_proxy_sync(bus_type, bus.get_name_owner(name), path);
+}
+
 [DBus (name = "org.freesmartphone.Device.Display")]
 interface Display : GLib.Object
 {
-    public abstract int get_brightness() throws DBus.Error;
-    public abstract void set_brightness(int value) throws DBus.Error;
+    public abstract int get_brightness() throws IOError;
+    public abstract void set_brightness(int value) throws IOError;
 }
 
 [DBus (name = "org.freesmartphone.Time.Alarm")]
@@ -32,15 +46,15 @@ interface FsoAlarm : GLib.Object
 {
 
     public abstract void
-    add_alarm(string dbus_name, int time) throws DBus.Error;
+    add_alarm(string dbus_name, int time) throws IOError;
     public abstract void
-    set_alarm(string dbus_name, int time)  throws DBus.Error;
+    set_alarm(string dbus_name, int time)  throws IOError;
 }
 [DBus (name = "org.freesmartphone.Usage")]
 interface Usage : GLib.Object
 {
-    public abstract void request_resource(string name) throws DBus.Error;
-    public abstract void release_resource(string name) throws DBus.Error;
+    public abstract void request_resource(string name) throws IOError;
+    public abstract void release_resource(string name) throws IOError;
 }
 
 namespace Ffalarms {
@@ -1213,20 +1227,20 @@ class AckWin : BaseWin
 	time_t time = (s != null) ? s.to_int() : 0;
 	AlarmControler alarm;
 	if (uid == null) {
-	    alarm = (AlarmControler) Main.bus.get_object(DBUS_NAME, "/");
+	    alarm = Bus.get_proxy_sync(BusType.SYSTEM, DBUS_NAME, "/");
 	} else {
 	    // XXX night hack
 	    while (true) {
 		try {
-		    alarm = (AlarmControler) Main.bus.get_object_for_name_owner(
-			DBUS_NAME, "/", DBUS_NAME);
+		    alarm = get_proxy_sync_for_name_owner(BusType.SYSTEM,
+							  DBUS_NAME, "/");
 		    string a_uid = alarm.GetUID();
 		    int a_time = alarm.GetTime();
 		    if (uid == a_uid && time == a_time)
 			break;
-		} catch (DBus.Error e) {
-		    if (! (e is DBus.Error.NAME_HAS_NO_OWNER))
-			message("dbus error: %s", e.message);
+		    
+		} catch (IOError e) {
+		    message("dbus error: %s", e.message);
 		}
 		usleep(300000);
 	    }
@@ -1317,7 +1331,7 @@ class AckWin : BaseWin
 	if ((ev->flags & ButtonFlags.DOUBLE_CLICK) != 0) {
 	    try {
 		alarm.Snooze(uid);
-	    } catch (DBus.Error e) {
+	    } catch (IOError e) {
 		debug("dbus error: %s", e.message);
 	    }
 	}
@@ -1350,7 +1364,7 @@ class AckWin : BaseWin
 	if (ack.state_get()) {
 	    try {
 		alarm.Stop(uid);
-	    } catch (DBus.Error e) {
+	    } catch (IOError e) {
 		message("dbus error %s", e.message);
 	    }
 	    acknowledge(uid, time);
@@ -1417,10 +1431,11 @@ class LEDClock
 
     void set_brightness(int value)
     {
-	if (value == -1 && brightness == -1 || Main.bus == null)
+	if (value == -1 && brightness == -1)
 	    return;
 	try {
-	    var display = (Display) Main.bus.get_object(
+	    Display display = Bus.get_proxy_sync(
+		BusType.SYSTEM,
 		"org.freesmartphone.odeviced",
 		"/org/freesmartphone/Device/Display/0");
 	    if (brightness == -1)
@@ -1428,7 +1443,7 @@ class LEDClock
 	    display.set_brightness((value != -1) ? value : brightness);
 	    if (value == -1)
 		brightness = -1;
-	} catch (DBus.Error e) {
+	} catch (IOError e) {
 		debug("D-Bus error: %s", e.message);
 	}
     }
@@ -1776,13 +1791,12 @@ class MainWin : BaseWin
 	int time;
 
 	try {
-	    alarm = (AlarmControler) Main.bus.get_object_for_name_owner(DBUS_NAME, "/", DBUS_NAME);
+	    alarm = get_proxy_sync_for_name_owner(BusType.SYSTEM, DBUS_NAME, "/");
 	    uid = alarm.GetUID();
 	    time = alarm.GetTime();
-	} catch (DBus.Error e) {
-	    message((e is DBus.Error.NAME_HAS_NO_OWNER) ?
-		    "No alarm is playing" : "dbus error: %s".printf(e.message),
-		    "Acknowledge alarm");
+	} catch (IOError e) {
+	    message("May be no alarm is playing?\ndbus error: %s"
+		    .printf(e.message), "Acknowledge alarm");
 	    return;
 	}
 	ack = new AckWin(alarm);
@@ -2013,18 +2027,19 @@ public class Config
 
 [DBus (name = "org.freesmartphone.Notification")]
 interface Notification : GLib.Object {
-    public abstract void alarm() throws DBus.Error;
+    public abstract void alarm() throws IOError;
 }
 
 [DBus (name = "org.openmoko.projects.ffalarms.alarm")]
 interface AlarmControler : GLib.Object {
-    public abstract string GetUID() throws DBus.Error;
-    public abstract int GetTime() throws DBus.Error;
-    public abstract void Snooze(string uid) throws DBus.Error;
-    public abstract void Stop(string uid) throws DBus.Error;
+    public abstract string GetUID() throws IOError;
+    public abstract int GetTime() throws IOError;
+    public abstract void Snooze(string uid) throws IOError;
+    public abstract void Stop(string uid) throws IOError;
 }
 
 
+[DBus (name = "org.openmoko.projects.ffalarms.alarm")]
 class Alarm : GLib.Object, Notification, AlarmControler {
     const string[] AMIXER_CMD = {AMIXER, "--stdin", "--quiet", null};
     const string[] AMIXER_GET_PCM_CMD = {AMIXER, "sget", "PCM", null};
@@ -2046,11 +2061,11 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     static pid_t player_pid = 0;
     enum Action { NONE = 0, EXIT, SNOOZE }
     static Action action = Action.NONE;
-    DBus.Connection bus;
+    DBusConnection bus;
+    uint owner_id = 0;
     string unique_name;
-    bool in_queue;
     Usage usage;
-    dynamic DBus.Object xbus;
+    FreeDesktopBus xbus;
     string uid;
     int[] saved_pcm_volume = {-1, -1};
 
@@ -2065,6 +2080,16 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	uid = Environment.get_variable("FFALARMS_UID") ?? "";
     }
 
+    void on_bus_aquired(DBusConnection conn)
+    {
+	try {
+	    conn.register_object("/", this);
+	    conn.register_object("/", (Notification) this);	    
+	} catch (IOError e) {
+	    printf("dbus error: %s", e.message);
+	}
+    }
+
     public void run()
     {
 	try {
@@ -2075,27 +2100,18 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	}
 
 	ml = new GLib.MainLoop(null, false);
-	try {
-	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	    unique_name = bus.get_connection().get_unique_name();
-	} catch (DBus.Error e) {
-	    debug("dbus error: %s", e.message);
-	}
-	if (bus != null) {
-	    usage = (Usage) bus.get_object(
-		"org.freesmartphone.ousaged", "/org/freesmartphone/Usage");
-	    request_resources();
-	    bus.register_object("/", this);
-	    xbus = bus.get_object("org.freedesktop.DBus",
-				  "/org/freedesktop/DBus",
-				  "org.freedesktop.DBus");
-	    xbus.NameOwnerChanged += wait_for_name_ownership;
-	}
+	bus = Bus.get_sync(BusType.SYSTEM);
+	unique_name = bus.get_unique_name();
+
+	usage = Bus.get_proxy_sync(BusType.SYSTEM,
+				   "org.freesmartphone.ousaged",
+				   "/org/freesmartphone/Usage");
+	request_resources();
+	owner_id = Bus.own_name(BusType.SYSTEM, DBUS_NAME, BusNameOwnerFlags.NONE,
+				on_bus_aquired, alarm_begin, null);
 	signal(SIGTERM, sigterm);
 	signal(SIGINT, sigterm);
 	snooze_cnt = cfg.snooze_cnt;
-
-	alarm_begin();
 	ml.run();
     }
 
@@ -2122,7 +2138,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    action = Action.EXIT;
     }
 
-    public void Snooze(string uid) throws DBus.Error
+    public void Snooze(string uid) throws IOError
     {
 	if (uid != this.uid)
 	    return;
@@ -2134,7 +2150,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	}
     }
 
-    public void Stop(string uid) throws DBus.Error
+    public void Stop(string uid) throws IOError
     {
 	if (uid != this.uid)
 	    return;
@@ -2148,39 +2164,19 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    ml.quit();
     }
 
-    public string GetUID() throws DBus.Error
+    public string GetUID() throws IOError
     {
 	return uid;
     }
 
-    public int GetTime() throws DBus.Error
+    public int GetTime() throws IOError
     {
 	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
 	return (s != null) ? s.to_int() : 0;
     }
 
-    void wait_for_name_ownership(dynamic DBus.Object o, string name,
-				 string prev_owner, string new_owner)
-    {
-	if (in_queue && name == DBUS_NAME && new_owner == unique_name) {
-	    in_queue = false;
-	    alarm_begin();
-	}
-    }
-
     void alarm_begin()
     {
-	if (bus != null) {
-	    var err = DBus.RawError();
-	    int reply = bus.get_connection().request_name(DBUS_NAME, 0, ref err);
-	    if (err.is_set()) {
-		warning("dbus error: %s\n", err.message);
-	    } else if (reply == DBus.RequestNameReply.IN_QUEUE) {
-		in_queue = true;
-		return;	  /* waiting */
-	    }
-	}
-	in_queue = false;
 	begin_volume_inc_loop();
 	alarm_loop();
     }
@@ -2263,20 +2259,17 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     void snooze()
     {
 	cnt = repeat;
-	usage.release_resource("Display");
-	var alarm = (FsoAlarm) bus.get_object(
-	    "org.freesmartphone.otimed", "/org/freesmartphone/Time/Alarm");
 	// XXX if we release name after SetAlarm notification will not come
-	var err = DBus.RawError();
-	bus.get_connection().release_name(DBUS_NAME, ref err);
-	if (err.is_set())
-	    warning("dbus error: %s\n", err.message);
 	try {
+	    usage.release_resource("Display");
+	    FsoAlarm alarm = Bus.get_proxy_sync(BusType.SYSTEM,
+						"org.freesmartphone.otimed",
+						"/org/freesmartphone/Time/Alarm");
 	    // register alarm
 	    try {
 		alarm.add_alarm(unique_name,
 			       (int)(time_t() + cfg.snooze_interval));
-	    } catch (DBus.Error e) {
+	    } catch (IOError e) {
 		warning("could not AddAlarm (will try SetAlarm): dbus error: %s",
 			e.message);
 		alarm.set_alarm(unique_name,
@@ -2287,7 +2280,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    if (action == Action.EXIT)
 		ml.quit();
 	    snooze_id = Timeout.add(3000, _snooze);
-	} catch (DBus.Error e) {
+	} catch (IOError e) {
 	    warning("quit instead of snooze: dbus error: %s", e.message);
 	    ml.quit();
 	}
@@ -2299,14 +2292,15 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	return false;
     }
 
-    public void alarm() throws DBus.Error
+    public void alarm() throws IOError
     {
 	Source.remove(snooze_id);
 	snooze_id = 0;
 	action = Action.NONE;
 	snoozing = false;
 	request_resources();
-	alarm_begin();
+	owner_id = Bus.own_name(BusType.SYSTEM, DBUS_NAME, BusNameOwnerFlags.NONE,
+				on_bus_aquired, alarm_begin, null);
     }
 
     void alarm_loop(Pid p = 0, int status = 0)
@@ -2315,7 +2309,8 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 
 	if (cnt-- == 0 || action != Action.NONE) {
 	    release_audio();
-	    if (snooze_cnt-- > 0 && bus != null && action != Action.EXIT)
+	    Bus.unown_name(owner_id);
+	    if (snooze_cnt-- > 0 && action != Action.EXIT)
 		snooze();
 	    else
 		ml.quit();
@@ -2351,8 +2346,6 @@ class Main {
     static bool kill = false;
     static bool puzzle = false;
     static string play_cmd = null;
-
-    public static DBus.Connection bus;
 
     [CCode (array_length = false, array_null_terminated = true)]
     static string[] alarms = null;
@@ -2399,11 +2392,6 @@ class Main {
 	else if (args.length == 1)
 	    Environment.set_prgname(Path.get_basename(args[0]));
 	Elm.init(args);
-	try {
-	    bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-	} catch (DBus.Error e) {
-	    debug("dbus error: %s", e.message);
-	}
 	var mw = new MainWin(edje_file, at_spool, config_file);
 	if (! puzzle) {
 	    mw.show();
@@ -2510,16 +2498,12 @@ class Main {
 	}
 	if (kill) {
 	    try {
-		bus = DBus.Bus.get(DBus.BusType.SYSTEM);
-		AlarmControler alarm = (AlarmControler) bus.get_object_for_name_owner(
-		    DBUS_NAME, "/", DBUS_NAME);
+		AlarmControler alarm = get_proxy_sync_for_name_owner(
+		    BusType.SYSTEM, DBUS_NAME, "/");
 		string uid = alarm.GetUID();
 		alarm.Stop(uid);
-	    } catch (DBus.Error e) {
-		if (e is DBus.Error.NAME_HAS_NO_OWNER)
-		    die("No alarm is playing");
-		else
-		    die("dbus error: %s".printf(e.message));
+	    } catch (IOError e) {
+		die("dbus error: %s".printf(e.message));
 	    }
 	}
 	if (list)

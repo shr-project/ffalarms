@@ -26,14 +26,14 @@ configure: .configured
 .configured:
 	@${VALAC} --version | awk \
 		'{ if ($$1 == "Vala" && split($$2, v, ".") >= 3 && \
-			(v[1] > 0 || v[2] >= 8)) { \
+			(v[1] > 0 || v[2] > 9 || v[2] == 9 && v[3] >= 2)) { \
 				exit 0 \
 			} else { \
 				print "error: valac >= 0.8.0 is required"; \
 				exit 1 \
 			} \
 		}'
-	pkg-config --print-errors --exists 'libical >= 0.44'
+	pkg-config --print-errors --exists 'libical >= 0.44' 'gio-2.0 >= 2.26'
 	touch .configured
 
 ffalarms: .configured ffalarms.o

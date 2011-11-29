@@ -3,13 +3,14 @@ VERSION=0.4
 
 PREFIX=/usr
 SYSCONFDIR=/etc
-PKG = elementary ecore evas edje gobject-2.0 gio-2.0 dbus-glib-1 libical
+PKG = elementary ecore evas edje gobject-2.0 gio-2.0 libical
 PKG_CFLAGS = `pkg-config --cflags ${PKG}`
 PKG_LDFLAGS = `pkg-config --libs ${PKG}`
 VALAC=valac
 VAPIDIR = .
-VALAFLAGS = --vapidir=${VAPIDIR} --vapidir=. --pkg=elementary --pkg=edje --pkg=dbus-glib-1 \
-	--pkg=posix --pkg=libical
+VALAFLAGS = --vapidir=${VAPIDIR} --vapidir=. --pkg=elementary --pkg=edje \
+	--pkg gio-2.0 --pkg=posix --pkg=libical
+
 CC ?= cc
 
 OE_TOPDIR = `which bitbake | sed s:/bitbake/bin/bitbake::`
