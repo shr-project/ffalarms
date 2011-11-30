@@ -37,7 +37,7 @@ configure: .configured
 	touch .configured
 
 ffalarms: .configured ffalarms.o
-	${CC} ${LDFLAGS} -Wl,--no-as-needed ${PKG_LDFLAGS} ffalarms.o -o $@
+	${CC} ${LDFLAGS} ${PKG_LDFLAGS} ffalarms.o -o $@
 
 ffalarms.o: ffalarms.c
 	${CC} -c -D_GNU_SOURCE ${CFLAGS} ${PKG_CFLAGS} $< -o $@

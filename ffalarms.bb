@@ -19,6 +19,9 @@ RDEPENDS = "atd alsa-utils-amixer ttf-dejavu-sans"
 
 RSUGGESTS = "mplayer alsa-utils-aplay frameworkd"
 
+# disable, otherwise linker reports undefined symbols
+ASNEEDED = ""
+
 do_configure() {
 	oe_runmake configure
 }
