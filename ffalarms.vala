@@ -28,7 +28,7 @@ interface FreeDesktopBus : GLib.Object
 }
 
 T get_proxy_sync_for_name_owner<T>(BusType bus_type, string name, string path)
-throws IOError
+throws IOError, GLib.Error
 {
     FreeDesktopBus bus = Bus.get_proxy_sync(bus_type, "org.freedesktop.DBus", "/");
     return Bus.get_proxy_sync(bus_type, bus.get_name_owner(name), path);
@@ -1794,14 +1794,15 @@ class MainWin : BaseWin
 	    alarm = get_proxy_sync_for_name_owner(BusType.SYSTEM, DBUS_NAME, "/");
 	    uid = alarm.GetUID();
 	    time = alarm.GetTime();
+	    ack = new AckWin(alarm);
+	    ack.set_data(cfg, (owned) uid, (time_t) time);
+	    ack.show(win, acknowledge);
+	} catch (GLib.Error e) {
+	    message("No alarm is playing", "Acknowledge alarm");
 	} catch (IOError e) {
-	    message("May be no alarm is playing?\ndbus error: %s"
-		    .printf(e.message), "Acknowledge alarm");
+	    message("dbus error: %s".printf(e.message), "Acknowledge alarm");
 	    return;
 	}
-	ack = new AckWin(alarm);
-	ack.set_data(cfg, (owned) uid, (time_t) time);
-	ack.show(win, acknowledge);
     }
 
     void acknowledge(string uid, time_t time)
