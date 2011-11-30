@@ -403,7 +403,7 @@ throws MyError
     MatchInfo m;
     while ((de = readdir(dir)) != null) {
 	unowned string s = (string) de.d_name;
-	time_t t = s.to_int();
+	time_t t = int.parse(s);
 	string uid;
 	if (re.match(s)) {
 	    var f = FileStream.open(Path.build_filename(cfg.at_spool, s), "r");
@@ -476,7 +476,7 @@ bool kill_running_alarms(string at_spool)
     }
     while ((line = f.read_line()) != null) {
 	if (alarm_cmd.match(nth_token(line, 7), 0, out m)) {
-	    int alarm_pid = nth_token(line, 1).to_int();
+	    int alarm_pid = int.parse(nth_token(line, 1));
 	    if (stat(Path.build_filename(
 			 at_spool, "x%s.%d".printf(
 			     m.fetch(1), alarm_pid)), out st) == 0)
@@ -910,14 +910,14 @@ class AddAlarm : BaseWin
 
     void set_hour(Edje.Object obj, string sig, string src)
     {
-	int h = src.split("-")[1].to_int();
+	int h = int.parse(src.split("-")[1]);
 	if (h >= 0 && h < 24)
 	    this.hour = h;
     }
 
     void set_minute(Edje.Object obj, string sig, string src)
     {
-	int m = src.split("-")[1].to_int();
+	int m = int.parse(src.split("-")[1]);
 	if (m >= 0 && m < 60)
 	    this.minute = m;
     }
@@ -1224,7 +1224,7 @@ class AckWin : BaseWin
     {
 	var uid = Environment.get_variable("FFALARMS_UID");
 	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
-	time_t time = (s != null) ? s.to_int() : 0;
+	time_t time = (s != null) ? int.parse(s) : 0;
 	AlarmControler alarm;
 	if (uid == null) {
 	    alarm = Bus.get_proxy_sync(BusType.SYSTEM, DBUS_NAME, "/");
@@ -2172,7 +2172,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     public int GetTime() throws IOError
     {
 	var s = Environment.get_variable("FFALARMS_ATD_SCRIPT");
-	return (s != null) ? s.to_int() : 0;
+	return (s != null) ? int.parse(s) : 0;
     }
 
     void alarm_begin()
@@ -2214,7 +2214,7 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	    if (re.match(pcm_volume, 0, out m)) {
 		int i = 0;
 		while (m.matches() && i < 2) {
-		    saved_pcm_volume[i++] = m.fetch(1).to_int();
+		    saved_pcm_volume[i++] = int.parse(m.fetch(1));
 		    m.next();
 		}
 	    }
@@ -2419,7 +2419,7 @@ class Main {
 	    Posix.exit(0);
 	}
 	if (play_cmd != null) {
-	    int cnt = (args[1] != null) ? args[1].to_int() : 1;
+	    int cnt = (args[1] != null) ? int.parse(args[1]) : 1;
 	    cfg = new Config(at_spool);
 	    try {
 		cfg.load_from_file(config_file);
@@ -2457,8 +2457,8 @@ class Main {
 			int h = -1, m = 0;
 			if (Regex.match_simple("^[0-9]+:[0-9]+$", s)) {
 			    var hm = s.split(":");
-			    h = hm[0].to_int();
-			    m = hm[1].to_int();
+			    h = int.parse(hm[0]);
+			    m = int.parse(hm[1]);
 			}
 			if (h < 0 || h > 23 || m < 0 || m > 59)
 			    die("argument to -s or --set must be of the form HH:MM or be the word now");
