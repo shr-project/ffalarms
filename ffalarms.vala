@@ -2065,7 +2065,6 @@ class Alarm : GLib.Object, Notification, AlarmControler {
     uint owner_id = 0;
     string unique_name;
     Usage usage;
-    FreeDesktopBus xbus;
     string uid;
     int[] saved_pcm_volume = {-1, -1};
 
@@ -2115,15 +2114,10 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 	ml.run();
     }
 
-    void request_resources()
+    void request_resources() throws IOError
     {
 	usage.request_resource("CPU");
 	usage.request_resource("Display");
-    }
-
-    void async_result(GLib.Error e) {
-	if (e != null)
-	    GLib.stderr.printf("end call error: %s\n", e.message);
     }
 
     static void sigterm(int signal)
@@ -2288,7 +2282,11 @@ class Alarm : GLib.Object, Notification, AlarmControler {
 
     bool _snooze()
     {
-	usage.release_resource("CPU");
+	try {
+	    usage.release_resource("CPU");
+	} catch (IOError e) {
+	    message("dbus error: %s", e.message);
+	}
 	return false;
     }
 
