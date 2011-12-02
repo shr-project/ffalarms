@@ -1461,7 +1461,7 @@ class Alarms
     {
 	lst = new Genlist(parent);
 	itc.item_style = "double_label";
-	itc.func.label_get = (GenlistItemLabelGetFunc) get_label;
+	itc.func.text_get = (GenlistItemTextGetFunc) get_text;
     }
 
     public void update(Config cfg) throws MyError
@@ -1486,7 +1486,7 @@ class Alarms
 	return (item != null) ? ((NextAlarm) item.data_get()).comp : null;
     }
 
-    static string get_label(void *data, Elm.Object? obj, string part)
+    static string get_text(void *data, Elm.Object? obj, string part)
     {
 	return ((NextAlarm) data).get_label(part);
     }
