@@ -28,7 +28,7 @@ interface FreeDesktopBus : GLib.Object
 }
 
 T get_proxy_sync_for_name_owner<T>(BusType bus_type, string name, string path)
-throws IOError, GLib.Error
+throws IOError, DBusError
 {
     FreeDesktopBus bus = Bus.get_proxy_sync(bus_type, "org.freedesktop.DBus", "/");
     return Bus.get_proxy_sync(bus_type, bus.get_name_owner(name), path);
@@ -1238,8 +1238,9 @@ class AckWin : BaseWin
 		    int a_time = alarm.GetTime();
 		    if (uid == a_uid && time == a_time)
 			break;
-		    
 		} catch (IOError e) {
+		    message("dbus error: %s", e.message);
+		} catch (DBusError e) {
 		    message("dbus error: %s", e.message);
 		}
 		usleep(300000);
@@ -1794,15 +1795,20 @@ class MainWin : BaseWin
 	    alarm = get_proxy_sync_for_name_owner(BusType.SYSTEM, DBUS_NAME, "/");
 	    uid = alarm.GetUID();
 	    time = alarm.GetTime();
-	    ack = new AckWin(alarm);
-	    ack.set_data(cfg, (owned) uid, (time_t) time);
-	    ack.show(win, acknowledge);
-	} catch (GLib.Error e) {
-	    message("No alarm is playing", "Acknowledge alarm");
+	} catch (DBusError e) {
+	    if (e is DBusError.NAME_HAS_NO_OWNER) {
+		message("No alarm is playing", "Acknowledge alarm");
+	    } else {
+		message("dbus error: %s".printf(e.message), "Acknowledge alarm");
+	    }
+	    return;
 	} catch (IOError e) {
 	    message("dbus error: %s".printf(e.message), "Acknowledge alarm");
 	    return;
 	}
+	ack = new AckWin(alarm);
+	ack.set_data(cfg, (owned) uid, (time_t) time);
+	ack.show(win, acknowledge);
     }
 
     void acknowledge(string uid, time_t time)
