@@ -22,20 +22,11 @@ public delegate void ObjectEventCallback(
 public void evas_object_event_callback_add(
     Evas.Object self, Evas.CallbackType type, ObjectEventCallback func);
 
-[Flags]
-[CCode (cprefix = "EVAS_BUTTON_", cname = "Evas_Button_Flags")]
-public enum ButtonFlags
-{
-    NONE,
-    DOUBLE_CLICK,
-    TRIPLE_CLICK
-}
-
 [Compact]
 [CCode (cname = "Evas_Event_Mouse_Down")]
 public class EventMouseDown
 {
-    public ButtonFlags flags;
+    public Evas.ButtonFlags flags;
 }
 
 [CCode (cheader_filename = "sys/stat.h")]
