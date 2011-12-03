@@ -1328,7 +1328,7 @@ class AckWin : BaseWin
     void snooze_clicked(Evas.Canvas e, Evas.Object obj, void *event_info)
     {
 	var ev = (EventMouseDown *) event_info;
-	if ((ev->flags & ButtonFlags.DOUBLE_CLICK) != 0) {
+	if ((ev->flags & Evas.ButtonFlags.DOUBLE_CLICK) != 0) {
 	    try {
 		alarm.Snooze(uid);
 	    } catch (IOError e) {
