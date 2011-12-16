@@ -752,7 +752,7 @@ class CalendarWin : BaseWin
     public CalendarWin(Win? parent, Calendar.DateFunc? date_clicked_cb=null)
     {
 	win = new Win(parent, "calendar", WinType.BASIC);
-	win.smart_callback_add("delete-request", close);
+	win.smart_callback_add("delete,request", close);
 	win.title_set("Calendar");
 
 	var bg = new Bg(win);
@@ -822,7 +822,7 @@ class AddAlarm : BaseWin
 	// NOTE do not use parent to avoid window decorations
 	win = new Win(null, "add", WinType.BASIC);
 	win.title_set("Add alarm");
-	win.smart_callback_add("delete-request", () => { this.win = null; });
+	win.smart_callback_add("delete,request", () => { this.win = null; });
 	this.set_alarm = set_alarm;
 
 	bg = new Bg(win);
@@ -1141,7 +1141,7 @@ class Confirm : BaseWin
 
 	win = new Win(parent);
 	win.title_set(title);
-	win.smart_callback_add("delete-request", this.close);
+	win.smart_callback_add("delete,request", this.close);
 	win.resize(480, 640);
 
 	var bg = new Bg(win);
@@ -1256,7 +1256,7 @@ class AckWin : BaseWin
 	this.acknowledge = acknowledge;
 	win = new Win(null, "acknowledge", WinType.BASIC);
 	win.title_set("Acknowledge alarm");
-	win.smart_callback_add("delete-request", this.close);
+	win.smart_callback_add("delete,request", this.close);
 
 	bg = new Bg(win);
 	bg.size_hint_weight_set(1.0, 1.0);
@@ -1399,7 +1399,7 @@ class LEDClock
 	// NOTE do not use parent for the fullscreen to work
 	win = new Win(null, "clock", WinType.BASIC);
 	win.title_set("Clock");
-	win.smart_callback_add("delete-request", this.close);
+	win.smart_callback_add("delete,request", this.close);
 
 	lt = new Layout(win);
 	lt.file_set(edje_file, "landscape-clock-group");
@@ -1694,7 +1694,7 @@ class MainWin : BaseWin
 	if (win == null)
 	    die("cannot create main window");
 	win.title_set("Alarms");
-	win.smart_callback_add("delete-request", close);
+	win.smart_callback_add("delete,request", close);
 	msgs = new InwinMessageQueue(win);
 	message = msgs.add;
 
