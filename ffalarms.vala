@@ -569,71 +569,59 @@ public void display_alarms_list(Config cfg) throws MyError
 
 class CheckGroup
 {
-    public Box bx;
-    public Check[] checks;
+    public unowned Box? bx;
+    public GLib.List<unowned Check?> checks;
 
     public CheckGroup(Win parent, string[] names)
     {
-	bx = new Box(parent);
-	checks = new Check[names.length];
-	int i = 0;
+	bx = Box.add(parent);
+	checks = new GLib.List<unowned Check?>();
 	foreach (var s in names) {
-	    var ck = new Check(parent);
+	    unowned Check? ck = Check.add(parent);
+	    ck.style_set("toggle");
 	    ck.text_set(s);
 	    ck.size_hint_align_set(0.0, 0.0);
 	    ck.show();
 	    ck.state_set(true);
 	    bx.pack_end(ck);
-	    checks[i++] = (owned) ck;
+	    checks.append(ck);
 	}
     }
 }
 
 
-class Base
-{
-    protected SList<Evas.Object> widgets;
-
-    protected void swallow(owned Evas.Object w)
-    {
-	widgets.prepend((owned) w);
-    }
-}
-
-
-class BaseWin : Base
+class BaseWin
 {
     protected Win win;
 
-    protected unowned Frame frame(string label, Elm.Object? content)
+    protected unowned Frame? frame(string label, Elm.Object? content)
     {
-	var fr = new Frame(win);
-	unowned Frame result = fr;
+	unowned Frame? fr = Frame.add(win);
+	unowned Frame? result = fr;
+	fr.text_set(label);
 	fr.text_set(label);
 	fr.content_set(content);
 	fr.size_hint_align_set(-1.0, 0.0);
 	fr.show();
-	widgets.prepend((owned) fr);
 	return result;
     }
 
-    protected unowned Frame pad(string style)
+    protected unowned Frame? pad(string style)
     {
-	var fr = new Frame(win);
-	unowned Frame result = fr;
+	unowned Frame? fr = Frame.add(win);
+	unowned Frame? result = fr;
 	fr.style_set(style);
 	fr.size_hint_align_set(-1.0, 0.0);
 	fr.show();
-	widgets.prepend((owned) fr);
 	return result;
     }
 }
 
 
-class Calendar : Base
+class Calendar
 {
 
-    public Table tb;
+    public unowned Table? tb;
     public delegate void DateFunc(Date date);
     public DateFunc date_clicked_cb;
 
@@ -642,16 +630,16 @@ class Calendar : Base
     int first_weekday;
 
     const int DAY_BTNS_CNT = 37;
-    Button[] day_btns = new Button[DAY_BTNS_CNT];
+    GLib.List<unowned Button?> day_btns = new GLib.List<unowned Button?>();
     HashTable<unowned Evas.Object,int> day_btns_to_idx;
-    Label cur_month;
+    unowned Label? cur_month;
 
     public const string[] days = {
 	"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
 
     public Calendar(Win parent)
     {
-	tb = new Table(parent);
+	tb = Table.add(parent);
 	tb.size_hint_weight_set(1.0, 1.0);
 	tb.size_hint_align_set(-1, -1);
 
@@ -660,40 +648,37 @@ class Calendar : Base
 	today.set_dmy((DateDay)tm.day, tm.month + 1,
 		      (DateYear)(1900 + tm.year));
 
-	cur_month = new Label(parent);
+	cur_month = Label.add(parent);
 	tb.pack(cur_month, 1, 0, 5, 1);
 	cur_month.show();
 
-	var b = new Button(parent);
+	unowned Button? b = Button.add(parent);
 	b.text_set("<");
 	b.smart_callback_add("clicked", prev_month);
 	tb.pack(b, 0, 0, 1, 1);
 	b.show();
-	swallow((owned) b);
 
-	b = new Button(parent);
+	b = Button.add(parent);
 	b.text_set(">");
 	b.smart_callback_add("clicked", next_month);
 	tb.pack(b, 6, 0, 1, 1);
 	b.show();
-	swallow((owned) b);
 
 	for (int i = 0; i < 7; ++i)
 	{
-	    var lb = new Label(parent);
+	    unowned Label? lb = Label.add(parent);
 	    lb.text_set(days[i]);
 	    tb.pack(lb, i, 1, 1, 1);
 	    lb.show();
-	    swallow((owned) lb);
 	}
 	day_btns_to_idx = new HashTable<unowned Evas.Object,int>(null, null);
 	for (int i = 0; i < DAY_BTNS_CNT; ++i)
 	{
-	    b = new Button(parent);
+	    b = Button.add(parent);
 	    b.smart_callback_add("clicked", day_button_cb);
 	    tb.pack(b, i % 7, i / 7 + 2, 1, 1);
 	    day_btns_to_idx.insert(b, i);
-	    day_btns[i] = (owned) b;
+	    day_btns.append(b);
 	}
 	set_month(today.get_month(), today.get_year());
 	tb.show();
@@ -723,15 +708,15 @@ class Calendar : Base
 	{
 	    int j = i - wday;
 	    if (j >= 0 && j < dim) {
-		day_btns[i].text_set((j + 1).to_string());
-		day_btns[i].show();
+		day_btns.nth_data(i).text_set((j + 1).to_string());
+		day_btns.nth_data(i).show();
 	    } else {
-		day_btns[i].hide();
+		day_btns.nth_data(i).hide();
 	    }
 	}
 	if (today.get_month() == month && today.get_year() == year) {
 	    int j = today.get_day() - 1;
-	    day_btns[j + wday].text_set("[%d]".printf(j + 1));
+	    day_btns.nth_data(j + wday).text_set("[%d]".printf(j + 1));
 	}
     }
 
@@ -755,13 +740,12 @@ class CalendarWin : BaseWin
 	win.smart_callback_add("delete,request", close);
 	win.title_set("Calendar");
 
-	var bg = new Bg(win);
+	unowned Bg? bg = Bg.add(win);
 	bg.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bg);
 	bg.show();
-	swallow((owned) bg);
 
-	var bx = new Box(win);
+	unowned Box? bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
@@ -770,16 +754,14 @@ class CalendarWin : BaseWin
 	cal.date_clicked_cb = date_clicked_cb;
 	cal.tb.size_hint_align_set(0.5, 0.5);
 
-	var b = new Button(win);
+	unowned Button? b = Button.add(win);
 	b.size_hint_align_set(-1, -1);
 	b.smart_callback_add("clicked", close);
 	b.text_set("Close");
 	cal.tb.pack(b, 2, 7, 5, 1);
 	b.show();
-	swallow((owned) b);
 
 	bx.pack_end(cal.tb);
-	swallow((owned) bx);
     }
 
     public void show()
@@ -796,11 +778,11 @@ class CalendarWin : BaseWin
 
 class AddAlarm : BaseWin
 {
-    Bg bg;
-    Box bx;
-    Pager pager;
+    unowned Bg? bg;
+    unowned Box? bx;
+    unowned Pager? pager;
     Buttons btns;
-    Layout lt;
+    unowned Layout? lt;
     unowned Edje.Object edje;
     int hour = -1;
     int minute = 0;
@@ -825,23 +807,23 @@ class AddAlarm : BaseWin
 	win.smart_callback_add("delete,request", () => { this.win = null; });
 	this.set_alarm = set_alarm;
 
-	bg = new Bg(win);
+	bg = Bg.add(win);
 	bg.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bg);
 	bg.show();
 
-	bx = new Box(win);
+	bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
 
-	pager = new Pager(win);
+	pager = Pager.add(win);
 	pager.size_hint_weight_set(1.0, 1.0);
 	pager.size_hint_align_set(-1.0, -1.0);
 	bx.pack_end(pager);
 	pager.show();
 
-	lt = new Layout(win);
+	lt = Layout.add(win);
 	lt.file_set(edje_file, "clock-group");
 	lt.size_hint_weight_set(1.0, 1.0);
 	lt.size_hint_align_set(-1.0, -1.0);
@@ -865,7 +847,7 @@ class AddAlarm : BaseWin
     public void set_data(Component c)
     {
 	win.title_set("Edit alarm");
-	btns.buttons[0].text_set("Save");
+	btns.buttons.nth_data(0).text_set("Save");
 	this.summary = c.get_summary();
 	var t = c.get_dtstart();
 	date.set_dmy((DateDay)t.day, t.month, (DateMonth)t.year);
@@ -929,7 +911,7 @@ class AddAlarm : BaseWin
 	if (options != null) {
 	    if (recur_editable) {
 		int i = 0, j = 0;
-		foreach (unowned Check ck in wd.checks) {
+		foreach (unowned Check? ck in wd.checks) {
 		    if (ck.state_get())
 			recur.by_day[j++] = recur_weekdays[i];
 		    i++;
@@ -962,14 +944,14 @@ class AddAlarm : BaseWin
 	win = null;
     }
 
-    Scroller options;
-    Clock cl;
-    Entry summary_e;
-    Hoversel freq;
-    /* Hoversel repeat; */
+    unowned Scroller? options;
+    unowned Clock? cl;
+    unowned Entry? summary_e;
+    unowned Hoversel? freq;
+    /* unowned Hoversel? repeat; */
     CheckGroup wd;
     Date date;
-    Button date_b;
+    unowned Button? date_b;
     CalendarWin cal;
 
     const string[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday",
@@ -986,18 +968,18 @@ class AddAlarm : BaseWin
 
     public void build_options()
     {
-	var bx = new Box(win);
+	unowned Box? bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 0.0);
 	bx.show();
 
-	summary_e = new Entry(win);
+	summary_e = Entry.add(win);
 	summary_e.single_line_set(true);
 	if (summary != null)
 	    this.summary_e.entry_set(Entry.utf8_to_markup(summary));
 	summary_e.size_hint_weight_set(1.0, 1.0);
 	summary_e.show();
 
-	var sc = new Scroller(win);
+	unowned Scroller? sc = Scroller.add(win);
 	sc.policy_set(ScrollerPolicy.OFF, ScrollerPolicy.OFF);
 	sc.content_min_limit(false, true);
 	sc.size_hint_align_set(-1.0, -1.0);
@@ -1005,11 +987,10 @@ class AddAlarm : BaseWin
 	sc.show();
 
 	bx.pack_end(frame("Summary", sc));
-	swallow((owned) sc);
 
-	var bx1 = new Box(win);
+	unowned Box? bx1 = Box.add(win);
 
-	date_b = new Button(win);
+	date_b = Button.add(win);
 	date_b.size_hint_align_set(-1.0, -1.0);
 	if (date.valid())
 	    set_date_close_calendar(date);
@@ -1019,17 +1000,16 @@ class AddAlarm : BaseWin
 	bx1.pack_end(date_b);
 	date_b.show();
 
-	cl = new Clock(win);
+	cl = Clock.add(win);
 	cl.time_set((hour != -1) ? hour : 0, minute, 0);
 	cl.edit_set(true);
 	bx1.pack_end(cl);
 	cl.show();
 	bx.pack_end(frame("Start", bx1));
 	bx1.show();
-	swallow((owned) bx1);
 
 	if (recur_editable) {
-	    freq = new Hoversel(win);
+	    freq = Hoversel.add(win);
 	    freq.hover_parent_set(win);
 	    freq_cb(recur.freq);
 	    freq.item_add("Once", null, IconType.NONE,
@@ -1047,25 +1027,24 @@ class AddAlarm : BaseWin
 
 	    wd = new CheckGroup(win, weekdays);
 	    if (recur.by_day[0] != Recurrence.ARRAY_MAX) {
-		foreach (unowned Check ck in wd.checks)
+		foreach (unowned Check? ck in wd.checks)
 		    ck.state_set(false);
 		for (int i = 0; i < Recurrence.ARRAY_MAX &&
 			 recur.by_day[i] != Recurrence.ARRAY_MAX; i++)
 		    for (int j = 0; j < recur_weekdays.length; j++)
 			if (recur.by_day[i] == recur_weekdays[j]) {
-			    wd.checks[j].state_set(true);
+			    wd.checks.nth_data(j).state_set(true);
 			    break;
 			}
 	    }
 	    bx.pack_end(frame("Weekdays", wd.bx));
 	} else {
-	    var lb = new Label(win);
+	    unowned Label? lb = Label.add(win);
 	    lb.text_set(Recurrence.as_string(ref recur));
 	    bx.pack_end(frame("Recurrence", lb));
-	    swallow((owned) lb);
 	}
 
-	sc = new Scroller(win);
+	sc = Scroller.add(win);
 	sc.content_min_limit(true, false);
 	sc.size_hint_weight_set(1.0, 1.0);
 	sc.size_hint_align_set(-1.0, -1.0);
@@ -1073,8 +1052,7 @@ class AddAlarm : BaseWin
 	sc.content_set(bx);
 	sc.show();
 	// whether to show the scroller
-	swallow((owned) bx);
-	options = (owned) sc;
+	options = sc;
     }
 
     void select_date_from_calendar()
@@ -1144,24 +1122,23 @@ class Confirm : BaseWin
 	win.smart_callback_add("delete,request", this.close);
 	win.resize(480, 640);
 
-	var bg = new Bg(win);
+	unowned Bg? bg = Bg.add(win);
 	bg.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bg);
 	bg.show();
-	swallow((owned) bg);
 
-	var bx = new Box(win);
+	unowned Box? bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
 
-	var hbx = new Box(win);
+	unowned Box? hbx = Box.add(win);
 	hbx.horizontal_set(true);
 	hbx.size_hint_weight_set(1.0, 1.0);
 	hbx.size_hint_align_set(-1.0, 0.5);
 	hbx.pack_end(pad("pad_small"));
 
-	var lb = new Label(win);
+	unowned Label? lb = Label.add(win);
 	lb.line_wrap_set(true);
 	lb.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	lb.size_hint_weight_set(1.0, 1.0);
@@ -1178,9 +1155,6 @@ class Confirm : BaseWin
 	bs.add("No", this.close);
 	bx.pack_end(bs.box);
 
-	swallow((owned) bx);
-	swallow((owned) hbx);
-	swallow((owned) lb);
     }
 
     public void show()
@@ -1202,8 +1176,8 @@ class Confirm : BaseWin
 
 class AckWin : BaseWin
 {
-    Bg bg;
-    Toggle ack;
+    unowned Bg? bg;
+    unowned Check? ack;
     Buttons btns;
     Evas.Rectangle r;
     public delegate void Acknowledge(string uid, time_t time);
@@ -1258,23 +1232,23 @@ class AckWin : BaseWin
 	win.title_set("Acknowledge alarm");
 	win.smart_callback_add("delete,request", this.close);
 
-	bg = new Bg(win);
+	bg = Bg.add(win);
 	bg.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bg);
 	bg.show();
 
-	var bx = new Box(win);
+	unowned Box? bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
 
-	var hbx = new Box(win);
+	unowned Box? hbx = Box.add(win);
 	hbx.horizontal_set(true);
 	hbx.size_hint_weight_set(1.0, 1.0);
 	hbx.size_hint_align_set(-1.0, 0.5);
 	hbx.pack_end(pad("pad_small"));
 
-	var lb = new Label(win);
+	unowned Label? lb = Label.add(win);
 	lb.line_wrap_set(true);
 	lb.text_set(
 	    "<b>Acknowledge the running alarm</b><br><br>%s<br><br>%s"
@@ -1285,22 +1259,21 @@ class AckWin : BaseWin
 	lb.size_hint_align_set(-1.0, 0.5);
 	lb.show();
 	hbx.pack_end(lb);
-	swallow((owned) lb);
 
 	hbx.pack_end(pad("pad_small"));
 	hbx.show();
 	bx.pack_end(hbx);
-	swallow((owned) hbx);
 
-	lb = new Label(win);
+	lb = Label.add(win);
 	lb.text_set("(double click anywhere to snooze)");
 	bx.pack_end(lb);
 	lb.show();
-	swallow((owned) lb);
 	bx.pack_end(pad("pad_medium"));
 
-	ack = new Toggle(win);
-	ack.states_labels_set("Acknowledge", "Not acknowledged");
+	ack = Check.add(win);
+	ack.style_set("toggle");
+	ack.part_text_set("on", "Acknowledge");
+	ack.part_text_set("off", "Not acknowledged");
 	ack.scale_set(2.0);
 	bx.pack_end(ack);
 	ack.show();
@@ -1308,11 +1281,9 @@ class AckWin : BaseWin
 	bx.pack_end(pad("pad_small"));
 
 	btns = new Buttons(win);
-	unowned Button close = btns.add("Close", this.close_maybe_ack);
+	unowned Button? close = btns.add("Close", this.close_maybe_ack);
 	close.hide();
 	bx.pack_end(btns.box);
-
-	swallow((owned) bx);
 
 	r = new Evas.Rectangle(win.evas_get());
 	r.size_hint_weight_set(1.0, 1.0);
@@ -1341,7 +1312,7 @@ class AckWin : BaseWin
     void ack_changed()
     {
 	if (ack.state_get())
-	    btns.buttons[0].show();
+	    btns.buttons.nth_data(0).show();
     }
 
     public void set_data(Config cfg, string? uid, time_t time)
@@ -1385,7 +1356,7 @@ class AckWin : BaseWin
 class LEDClock
 {
     Win win;
-    Layout lt;
+    unowned Layout? lt;
     int brightness = -1;
     unowned Config cfg;
 
@@ -1401,7 +1372,7 @@ class LEDClock
 	win.title_set("Clock");
 	win.smart_callback_add("delete,request", this.close);
 
-	lt = new Layout(win);
+	lt = Layout.add(win);
 	lt.file_set(edje_file, "landscape-clock-group");
 	lt.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(lt);
@@ -1452,14 +1423,14 @@ class LEDClock
 
 class Alarms
 {
-    public Genlist lst;
+    public unowned Genlist? lst;
     GenlistItemClass itc;
     public Component alarms;
     NextAlarm[] future;
 
     public Alarms(Elm.Object parent)
     {
-	lst = new Genlist(parent);
+	lst = Genlist.add(parent);
 	itc.item_style = "double_label";
 	itc.func.text_get = (GenlistItemTextGetFunc) get_text;
     }
@@ -1471,18 +1442,18 @@ class Alarms
 	alarms = list_alarms(cfg);
 	future = list_future_alarms(alarms);
 	foreach (unowned NextAlarm a in future)
-	    lst.item_append(ref itc, a, null, Elm.GenlistItemFlags.NONE, null);
+	    lst.item_append(itc, a, null, Elm.GenlistItemType.NONE, null);
     }
 
     public unowned NextAlarm? selected_item_get()
     {
-	unowned GenlistItem item = lst.selected_item_get();
+	unowned GenlistItem? item = lst.selected_item_get();
 	return (item != null) ? (NextAlarm) item.data_get() : null;
     }
 
     public unowned Component? selected_alarm()
     {
-	unowned GenlistItem item = lst.selected_item_get();
+	unowned GenlistItem? item = lst.selected_item_get();
 	return (item != null) ? ((NextAlarm) item.data_get()).comp : null;
     }
 
@@ -1495,43 +1466,46 @@ class Alarms
 
 class Message
 {
-    Win w;
-    Label tt;
-    Box bx;
-    Box hbx;
-    Button bt;
-    Label lb;
+    unowned Win? w;
+    unowned Label? tt;
+    unowned Box? bx;
+    unowned Box? hbx;
+    unowned Button? bt;
+    unowned Label? lb;
     int fr_num = 0;
-    Frame[] fr = new Frame[6];
+    GLib.List<unowned Frame?> fr;
     public delegate void Func();
     Func close_cb;
 
-    unowned Frame frame(string style)
+    unowned Frame? frame(string style)
     {
-	(fr[fr_num] = new Frame(w)).style_set(style);
-	return fr[fr_num++];
+	unowned Frame? frtmp = Frame.add(w);
+	frtmp.style_set(style);
+	fr.append(frtmp);
+	return frtmp;
     }
 
     public Message(Win win, string msg, string? title=null,
 		   Func? close_cb=null)
     {
+	fr = new GLib.List<unowned Frame?>();
 	this.close_cb = close_cb;
 	w = win.inwin_add();
-	bx = new Box(w);
+	bx = Box.add(w);
 	bx.scale_set(1.0);
 	bx.pack_end(frame("pad_small"));
 	if (title != null) {
-	    tt = new Label(w);
+	    tt = Label.add(w);
 	    tt.text_set("<b>%s</b>".printf(title));
 	    tt.show();
 	    bx.pack_end(tt);
 	    bx.pack_end(frame("pad_medium"));
 	}
-	hbx = new Box(w);
+	hbx = Box.add(w);
 	hbx.horizontal_set(true);
 	hbx.size_hint_align_set(-1.0, 0.5); // fill horizontally
 	hbx.pack_end(frame("pad_small"));
-	lb = new Label(w);
+	lb = Label.add(w);
 	lb.line_wrap_set(true);
 	lb.text_set(msg.replace("<", "&lt;").replace("\n", "<br>"));
 	lb.size_hint_align_set(-1.0, 0.5); // fill horizontally
@@ -1542,7 +1516,7 @@ class Message
 	hbx.show();
 	bx.pack_end(hbx);
 	bx.pack_end(frame("pad_medium"));
-	bt = new Button(w);
+	bt = Button.add(w);
 	bt.text_set("  Ok  ");
 	bt.scale_set(1.5);
 	bt.smart_callback_add("clicked", close);
@@ -1602,14 +1576,15 @@ class InwinMessageQueue
 
 class Buttons
 {
-    public Box box;
-    public Button[] buttons = new Button[3];
+    public unowned Box? box;
+    public GLib.List<unowned Button?> buttons;
     int idx = 0;
     unowned Elm.Object parent;
 
     public Buttons(Elm.Object parent)
     {
-	box = new Box(parent);
+	buttons = new GLib.List<unowned Button?>();
+	box = Box.add(parent);
 	box.size_hint_weight_set(1.0, 0.0);
 	box.size_hint_align_set(-1.0, -1.0);
 	box.horizontal_set(true);
@@ -1618,17 +1593,18 @@ class Buttons
 	this.parent = parent;
     }
 
-    public unowned Button add(string label, Evas.Callback cb)
+    public unowned Button? add(string label, Evas.Callback cb)
     {
-	unowned Button b;
+	unowned Button? b;
 
-	b = buttons[idx++] = new Button(parent);
+	b = Button.add(parent);
 	b.text_set(label);
 	b.smart_callback_add("clicked", cb);
 	b.size_hint_weight_set(1.0, 0.0);
 	b.size_hint_align_set(-1.0, -1.0);
 	box.pack_end(b);
 	b.show();
+	buttons.append(b);
 	return b;
     }
 }
@@ -1636,20 +1612,20 @@ class Buttons
 
 class HoverButtons : Buttons
 {
-    public Hover hover;
+    public unowned Hover? hover;
 
     public HoverButtons(Elm.Object parent)
     {
 	base(parent);
-	hover = new Hover(parent);
+	hover = Hover.add(parent);
 	hover.parent_set(parent);
 	box.horizontal_set(false);
-	hover.content_set("top", box);
+	hover.part_content_set("top", box);
     }
 
-    public new unowned Button add(string label, Evas.Callback cb)
+    public new unowned Button? add(string label, Evas.Callback cb)
     {
-	unowned Button b = base.add(label, cb);
+	unowned Button? b = base.add(label, cb);
 	b.smart_callback_add("clicked", hover.hide);
 	return b;
     }
@@ -1658,8 +1634,8 @@ class HoverButtons : Buttons
 
 class MainWin : BaseWin
 {
-    Bg bg;
-    Box bx;
+    unowned Bg? bg;
+    unowned Box? bx;
     Buttons btns;
     LEDClock clock;
     AddAlarm aa;
@@ -1698,12 +1674,12 @@ class MainWin : BaseWin
 	msgs = new InwinMessageQueue(win);
 	message = msgs.add;
 
-	bg = new Bg(win);
+	bg = Bg.add(win);
 	bg.size_hint_weight_set(1.0, 1.0);
 	bg.show();
 	win.resize_object_add(bg);
 
-	bx = new Box(win);
+	bx = Box.add(win);
 	bx.size_hint_weight_set(1.0, 1.0);
 	win.resize_object_add(bx);
 	bx.show();
@@ -1807,7 +1783,7 @@ class MainWin : BaseWin
 	    return;
 	}
 	ack = new AckWin(alarm);
-	ack.set_data(cfg, (owned) uid, (time_t) time);
+	ack.set_data(cfg, uid, (time_t) time);
 	ack.show(win, acknowledge);
     }
 
