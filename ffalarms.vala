@@ -384,7 +384,7 @@ NextAlarm[] list_future_alarms(Component alarms)
 }
 
 
-public SList<AlarmInfo?> list_scheduled_alarms(Config cfg)
+SList<AlarmInfo?> list_scheduled_alarms(Config cfg)
 throws MyError
 {
     Regex re, re_uid;
