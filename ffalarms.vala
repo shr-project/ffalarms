@@ -1431,6 +1431,7 @@ class Alarms
     public Alarms(Elm.Object parent)
     {
 	lst = Genlist.add(parent);
+	itc = new GenlistItemClass();
 	itc.item_style = "double_label";
 	itc.func.text_get = (GenlistItemTextGetFunc) get_text;
     }
