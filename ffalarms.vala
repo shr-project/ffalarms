@@ -780,7 +780,7 @@ class AddAlarm : BaseWin
 {
     unowned Bg? bg;
     unowned Box? bx;
-    unowned Pager? pager;
+    unowned Naviframe? pager;
     Buttons btns;
     unowned Layout? lt;
     unowned Edje.Object edje;
@@ -817,7 +817,7 @@ class AddAlarm : BaseWin
 	win.resize_object_add(bx);
 	bx.show();
 
-	pager = Pager.add(win);
+	pager = Naviframe.add(win);
 	pager.size_hint_weight_set(1.0, 1.0);
 	pager.size_hint_align_set(-1.0, -1.0);
 	bx.pack_end(pager);
@@ -827,7 +827,9 @@ class AddAlarm : BaseWin
 	lt.file_set(edje_file, "clock-group");
 	lt.size_hint_weight_set(1.0, 1.0);
 	lt.size_hint_align_set(-1.0, -1.0);
-	pager.content_push(lt);
+	unowned Elm.NaviframeItem it;
+	it = pager.item_push("", null, null, lt, null);
+	it.title_visible_set(false);
 	lt.show();
 
 	btns = new Buttons(win);
@@ -877,7 +879,9 @@ class AddAlarm : BaseWin
     {
 	if (options == null) {
 	    build_options();
-	    pager.content_push(options);
+	    unowned Elm.NaviframeItem it;
+	    it = pager.item_push("", null, null, options, null);
+	    it.title_visible_set(false);
 	}
 	if (showing_options) {
 	    cl.time_get(out hour, out minute, null);
@@ -886,7 +890,7 @@ class AddAlarm : BaseWin
 	} else {
 	    cl.time_set((hour != -1) ? hour : 0, minute, 0);
 	}
-	pager.content_promote((showing_options) ? (Elm.Object) lt : options);
+	pager.item_simple_promote((showing_options) ? (Elm.Object) lt : options);
 	showing_options = ! showing_options;
     }
 
