@@ -1534,6 +1534,7 @@ class Message
     }
 
     void close() {
+	this.w.del();
 	this.w = null;
 	if (close_cb != null)
 	    close_cb();
